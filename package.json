@@ -1,0 +1,17 @@
+{
+  "name": "silverleaf-ops-request-desk",
+  "version": "1.0.0",
+  "description": "Simple ops request desk for Silverleaf operations manager and five departments",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "express": "^4.21.2"
+  }
+}

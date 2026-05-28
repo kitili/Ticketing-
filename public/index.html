@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Silverleaf Ops Ticket Desk</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <!-- LOGIN -->
+    <div id="login-screen" class="login-wrap">
+      <div class="login-card">
+        <h1>Ops Ticket Desk</h1>
+        <p class="subtitle">
+          Transport · Facilities · Kitchen · Security · Farms → Operations Manager
+        </p>
+        <form id="login-form">
+          <label for="login-role">I am</label>
+          <select id="login-role" required>
+            <option value="requester">Department staff (open ticket)</option>
+            <option value="manager">Operations Manager</option>
+          </select>
+
+          <div id="dept-wrap">
+            <label for="login-department">Department</label>
+            <select id="login-department"></select>
+
+            <label for="login-name">Your name</label>
+            <input id="login-name" type="text" placeholder="e.g. James K." />
+          </div>
+
+          <div id="pin-wrap" class="hidden">
+            <label for="login-pin">Manager PIN</label>
+            <input id="login-pin" type="password" autocomplete="current-password" />
+            <p class="hint" id="pin-hint"></p>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%">Sign in</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <div id="app-screen" class="hidden">
+      <header class="app-header">
+        <div>
+          <h1 id="header-title">Ops Ticket Desk</h1>
+          <span class="header-meta" id="header-meta"></span>
+          <span id="badge-new" class="badge-new hidden">0 new</span>
+        </div>
+        <button type="button" class="btn btn-secondary" id="btn-logout">Logout</button>
+      </header>
+
+      <main class="app-main">
+        <!-- REQUESTER -->
+        <section id="panel-requester" class="hidden">
+          <nav class="tabs">
+            <button type="button" class="tab-btn active" data-tab="submit">Open ticket</button>
+            <button type="button" class="tab-btn" data-tab="list">My tickets</button>
+          </nav>
+
+          <div id="req-tab-submit" class="card">
+            <h2>Open a ticket with Operations</h2>
+            <form id="submit-form">
+              <label for="submit-department">Department</label>
+              <select id="submit-department" required></select>
+
+              <label for="submit-name">Your name</label>
+              <input id="submit-name" type="text" required />
+
+              <label for="submit-campus">Campus (optional)</label>
+              <input id="submit-campus" type="text" placeholder="e.g. Arusha Modern" />
+
+              <label for="submit-title">Ticket title</label>
+              <input id="submit-title" type="text" required placeholder="Short title" />
+
+              <label for="submit-details">Details</label>
+              <textarea id="submit-details" required placeholder="Explain what you need and why…"></textarea>
+
+              <label for="submit-category">Category</label>
+              <select id="submit-category"></select>
+
+              <label for="submit-priority">Priority</label>
+              <select id="submit-priority"></select>
+
+              <p class="hint">Tip: use <strong>Pending info</strong> when Operations needs more details before action.</p>
+
+              <button type="submit" class="btn btn-primary">Open ticket</button>
+            </form>
+          </div>
+
+          <div id="req-tab-list" class="card hidden">
+            <h2>My department tickets</h2>
+            <div id="requester-list"></div>
+          </div>
+
+          <div id="req-tab-detail" class="hidden">
+            <div class="card" id="requester-detail"></div>
+          </div>
+        </section>
+
+        <!-- MANAGER -->
+        <section id="panel-manager" class="hidden">
+          <nav class="tabs">
+            <button type="button" class="tab-btn active" data-tab="inbox">Inbox</button>
+            <button type="button" class="tab-btn" data-tab="export">Export data</button>
+            <button type="button" class="tab-btn" data-tab="settings">Settings</button>
+          </nav>
+
+          <div id="mgr-tab-inbox">
+            <div class="card">
+              <h2>All tickets</h2>
+              <div class="filters">
+                <div>
+                  <label for="mgr-filter-dept">Department</label>
+                  <select id="mgr-filter-dept"></select>
+                </div>
+                <div>
+                  <label for="mgr-filter-status">Status</label>
+                  <select id="mgr-filter-status">
+                    <option value="">All</option>
+                    <option value="open">Open</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="pending_info">Pending info</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                    <option value="declined">Declined</option>
+                  </select>
+                </div>
+                <button type="button" class="btn btn-primary" id="mgr-filter-apply">Filter</button>
+                <button type="button" class="btn btn-secondary" id="mgr-filter-clear">Clear</button>
+              </div>
+              <div id="manager-list"></div>
+            </div>
+          </div>
+
+          <div id="mgr-tab-detail" class="hidden">
+            <div class="card" id="manager-detail"></div>
+          </div>
+
+          <div id="mgr-tab-export" class="card hidden">
+            <h2>Download tickets (CSV)</h2>
+            <p class="hint">Export by date opened. Leave blank for all records.</p>
+            <label for="export-from">From date</label>
+            <input id="export-from" type="date" />
+            <label for="export-to">To date</label>
+            <input id="export-to" type="date" />
+            <button type="button" class="btn btn-primary" id="btn-export">Download CSV</button>
+          </div>
+
+          <div id="mgr-tab-settings" class="card hidden">
+            <h2>Manager PIN</h2>
+            <p class="hint">Only the Operations Manager uses a PIN. Departments do not.</p>
+            <label for="old-pin">Old PIN</label>
+            <input id="old-pin" type="password" autocomplete="current-password" />
+            <label for="new-pin">New PIN</label>
+            <input id="new-pin" type="password" autocomplete="new-password" />
+            <button type="button" class="btn btn-primary" id="btn-change-pin">Change PIN</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
