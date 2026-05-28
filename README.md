@@ -27,11 +27,13 @@ npm start
 
 Open **http://localhost:3847**
 
-## Demo PINs (change before production)
+## Manager PIN
 
 Only the **Operations Manager** uses a PIN. Departments do **not**.
 
-Set an initial manager PIN (bootstrap):
+Default manager PIN (current): **`Ops2026`**
+
+To change it, set a new `MANAGER_PIN` and restart the server, or use the Manager **Settings** tab.
 
 ```bash
 MANAGER_PIN=your-secret npm start
