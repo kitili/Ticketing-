@@ -488,9 +488,8 @@ document.getElementById("btn-change-pin").addEventListener("click", async () => 
 
 // --- Boot ---
 async function boot() {
-  try {
-    const { departments } = await api.getDepartments();
-    const meta = await api.getTicketMeta();
+  const { departments } = await api.getDepartments();
+  const meta = await api.getTicketMeta();
   const opts = departments
     .map((d) => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`)
     .join("");
@@ -508,9 +507,8 @@ async function boot() {
     .join("");
   document.getElementById("submit-priority").innerHTML = prOpts;
 
-  let pinStatus = { configured: false };
   try {
-    pinStatus = await api.getManagerPinStatus();
+    const pinStatus = await api.getManagerPinStatus();
     if (!pinStatus.configured) {
       pinHint.textContent = "Manager PIN not set in Supabase. Run supabase/schema.sql first.";
     }
@@ -518,7 +516,6 @@ async function boot() {
     pinHint.textContent = "Connect Supabase — see DEPLOY.md";
   }
 
-  // Default login screen state
   deptWrap.classList.toggle("hidden", roleSelect.value !== "requester");
   pinWrap.classList.toggle("hidden", roleSelect.value !== "manager");
 
