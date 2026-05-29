@@ -2,9 +2,10 @@
 
 # Ticketing-
 
-Simple internal app: **five operations departments** open tickets with the **Operations Manager**, who responds and tracks progress; departments **close** when resolved.
+Simple internal **ticket system** for Silverleaf operations: five departments open tickets; the Operations Manager manages them; departments close when resolved.
 
-**Stack:** HTML + CSS + JavaScript · Node.js + Express + SQLite (no frameworks on the frontend).
+**Production stack:** Static HTML/CSS/JS + **Supabase** (free DB) + **Netlify** (free hosting).  
+**No Node server required** for live deployment.
 
 ## Departments
 
@@ -12,46 +13,37 @@ Transport · Facilities · Kitchen · Security · Farms
 
 ## Workflow
 
-1. **Open ticket** → status `open`
-2. Manager sets **In progress** / **Pending info** / **Resolved** / **Declined**
-3. Department **Close ticket** (only after Resolved) → `closed`
-4. **Export CSV** by date range (manager)
-
-## Run locally
-
-```bash
-cd silverleaf-ops-request-desk
-npm install
-npm start
-```
-
-Open **http://localhost:3847**
+1. **Open ticket** → `open`
+2. Manager: **In progress** / **Pending info** / **Resolved** / **Declined**
+3. Department **Close ticket** (after Resolved) → `closed`
+4. Manager **Export CSV**
 
 ## Manager PIN
 
-Only the **Operations Manager** uses a PIN. Departments do **not**.
+- Departments: **no PIN**
+- Manager default PIN (after running schema): **`Ops2026`**
+- Change in Manager → **Settings**
 
-Default manager PIN (current): **`Ops2026`**
+## Deploy (free)
 
-To change it, set a new `MANAGER_PIN` and restart the server, or use the Manager **Settings** tab.
+See **[DEPLOY.md](./DEPLOY.md)** — Supabase + Netlify in ~10 minutes.
+
+## Local dev
 
 ```bash
-MANAGER_PIN=your-secret npm start
+cp public/js/config.example.js public/js/config.js
+# add Supabase URL + anon key to config.js
+cd public && python3 -m http.server 8080
 ```
 
 ## Project layout
 
 ```
-OUTLINE.md          ← full build checklist
-server.js           ← API
-db.js               ← SQLite
-data/ops-requests.db
-public/
-  index.html
-  css/styles.css
-  js/api.js, ui.js, app.js
+public/           ← frontend (Netlify publish dir)
+supabase/schema.sql
+scripts/write-config.js
+netlify.toml
+DEPLOY.md
 ```
 
-## Outline
-
-See [OUTLINE.md](./OUTLINE.md) for every process and phase.
+Legacy Node/SQLite: `server.js`, `db.js` (optional local use).

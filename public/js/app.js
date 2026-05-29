@@ -462,10 +462,15 @@ async function openManagerDetail(id) {
   }
 }
 
-document.getElementById("btn-export").addEventListener("click", () => {
+document.getElementById("btn-export").addEventListener("click", async () => {
   const from = document.getElementById("export-from").value;
   const to = document.getElementById("export-to").value;
-  window.location.href = api.exportCsvUrl(from, to);
+  try {
+    await api.downloadCsv(from, to);
+    showToast("CSV downloaded.", "success");
+  } catch (err) {
+    showToast(err.message, "error");
+  }
 });
 
 document.getElementById("btn-change-pin").addEventListener("click", async () => {
@@ -483,8 +488,9 @@ document.getElementById("btn-change-pin").addEventListener("click", async () => 
 
 // --- Boot ---
 async function boot() {
-  const { departments } = await api.getDepartments();
-  const meta = await api.getTicketMeta();
+  try {
+    const { departments } = await api.getDepartments();
+    const meta = await api.getTicketMeta();
   const opts = departments
     .map((d) => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`)
     .join("");
@@ -502,11 +508,14 @@ async function boot() {
     .join("");
   document.getElementById("submit-priority").innerHTML = prOpts;
 
-  const pinStatus = await api.getManagerPinStatus();
-  if (!pinStatus.configured) {
-    pinHint.textContent = "Manager PIN not set yet. Ask the manager to set it on the server, then change it in Settings.";
-  } else {
-    pinHint.textContent = "";
+  let pinStatus = { configured: false };
+  try {
+    pinStatus = await api.getManagerPinStatus();
+    if (!pinStatus.configured) {
+      pinHint.textContent = "Manager PIN not set in Supabase. Run supabase/schema.sql first.";
+    }
+  } catch {
+    pinHint.textContent = "Connect Supabase — see DEPLOY.md";
   }
 
   // Default login screen state
