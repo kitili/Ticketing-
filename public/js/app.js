@@ -486,38 +486,54 @@ document.getElementById("btn-change-pin").addEventListener("click", async () => 
   }
 });
 
-// --- Boot ---
-async function boot() {
-  const { departments } = await api.getDepartments();
-  const meta = await api.getTicketMeta();
-  const opts = departments
-    .map((d) => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`)
-    .join("");
-  deptSelect.innerHTML = opts;
-  document.getElementById("mgr-filter-dept").innerHTML =
-    '<option value="">All departments</option>' + opts;
+function showSetupError(msg) {
+  const el = document.getElementById("setup-error");
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
 
-  const catOpts = meta.categories
-    .map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`)
-    .join("");
+function initStaticFormOptions() {
+  const deptOpts = api.DEPARTMENTS.map(
+    (d) => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`
+  ).join("");
+  deptSelect.innerHTML = deptOpts;
+  document.getElementById("mgr-filter-dept").innerHTML =
+    '<option value="">All departments</option>' + deptOpts;
+
+  const catOpts = api.CATEGORIES.map(
+    (c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`
+  ).join("");
   document.getElementById("submit-category").innerHTML = catOpts;
 
-  const prOpts = meta.priorities
-    .map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
-    .join("");
+  const prOpts = api.PRIORITIES.map(
+    (p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`
+  ).join("");
   document.getElementById("submit-priority").innerHTML = prOpts;
+}
+
+// --- Boot ---
+async function boot() {
+  initStaticFormOptions();
+  deptWrap.classList.toggle("hidden", roleSelect.value !== "requester");
+  pinWrap.classList.toggle("hidden", roleSelect.value !== "manager");
+
+  if (!api.isConfigured()) {
+    showSetupError(
+      "Supabase is not connected. In Netlify → Site settings → Environment variables, add SUPABASE_URL and SUPABASE_ANON_KEY (use the Publishable key, not the Secret key), then click Deploys → Trigger deploy."
+    );
+    showLogin();
+    return;
+  }
 
   try {
     const pinStatus = await api.getManagerPinStatus();
     if (!pinStatus.configured) {
-      pinHint.textContent = "Manager PIN not set in Supabase. Run supabase/schema.sql first.";
+      pinHint.textContent = "Run supabase/schema.sql in Supabase SQL Editor (sets manager PIN Ops2026).";
     }
-  } catch {
-    pinHint.textContent = "Connect Supabase — see DEPLOY.md";
+  } catch (err) {
+    pinHint.textContent = "Cannot reach Supabase: " + err.message;
   }
-
-  deptWrap.classList.toggle("hidden", roleSelect.value !== "requester");
-  pinWrap.classList.toggle("hidden", roleSelect.value !== "manager");
 
   user = loadSession();
   if (user) {
@@ -527,4 +543,8 @@ async function boot() {
   }
 }
 
-boot();
+boot().catch((err) => {
+  initStaticFormOptions();
+  showSetupError("App failed to start: " + err.message);
+  showLogin();
+});

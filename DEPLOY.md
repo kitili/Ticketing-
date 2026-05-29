@@ -1,50 +1,66 @@
 # Deploy: Supabase + Netlify (free)
 
-## 1) Create Supabase project (free)
-1. Go to [supabase.com](https://supabase.com) → New project (free tier).
-2. Open **SQL Editor** → paste and run **`supabase/schema.sql`**.
-3. Go to **Project Settings → API** and copy:
-   - **Project URL**
-   - **anon public** key
+## What goes where (important)
 
-Default manager PIN after schema: **`Ops2026`** (change in app Settings).
+| You have in Supabase | Put in Netlify as | Do NOT use |
+|----------------------|-------------------|------------|
+| **Project URL** (Settings → General) | `SUPABASE_URL` | Secret key |
+| **Publishable key** (Settings → API Keys) | `SUPABASE_ANON_KEY` | Secret key |
+
+Example:
+- `SUPABASE_URL` = `https://abcdefgh.supabase.co`
+- `SUPABASE_ANON_KEY` = `sb_publishable_Hs5JT0...` (copy full key)
+
+The **Secret key** is only for servers — never put it in Netlify.
 
 ---
 
-## 2) Deploy frontend on Netlify (free)
-1. Push this repo to GitHub: `https://github.com/kitili/Ticketing-`
-2. Netlify → **Add new site** → **Import from Git** → select repo.
-3. Build settings (auto from `netlify.toml`):
-   - **Publish directory:** `public`
+## 1) Supabase setup
+
+1. [supabase.com](https://supabase.com) → your project **Ticketing-**
+2. **SQL Editor** → paste all of **`supabase/schema.sql`** → **Run**
+3. **Settings → General** → copy **Project URL**
+4. **Settings → API Keys** → copy **Publishable key** (default)
+
+Default manager PIN after schema: **`Ops2026`**
+
+---
+
+## 2) Netlify setup
+
+1. Import GitHub repo: `https://github.com/kitili/Ticketing-`
+2. Build settings (from `netlify.toml`):
+   - **Base directory:** (leave empty)
    - **Build command:** `node scripts/write-config.js`
-4. **Site settings → Environment variables:**
-   - `SUPABASE_URL` = your Project URL
-   - `SUPABASE_ANON_KEY` = your anon key
-5. **Deploy site** → Netlify gives you a link like `https://something.netlify.app`
+   - **Publish directory:** `public`
+3. **Site configuration → Environment variables** → add:
+
+| Key | Value |
+|-----|--------|
+| `SUPABASE_URL` | Your Project URL |
+| `SUPABASE_ANON_KEY` | Your **Publishable** key |
+
+4. **Deploys → Trigger deploy → Deploy site** (required after adding env vars)
 
 ---
 
-## 3) Custom domain (optional)
-Netlify → **Domain management** → add `ops.silverleafschools.co.tz`  
-Add the DNS record Netlify shows (usually CNAME).
+## 3) Test
+
+Open your Netlify URL. You should see:
+- Department dropdown filled (Transport, Facilities, …)
+- Department staff: no PIN
+- Manager PIN: **Ops2026**
+
+If the dropdown is empty or the form is frozen, Supabase env vars are missing — redeploy after fixing step 2.
 
 ---
 
-## Local dev (optional)
+## Local dev
+
 ```bash
 cp public/js/config.example.js public/js/config.js
-# Edit config.js with your Supabase URL + anon key
+# Edit config.js with your Supabase URL + Publishable key
 cd public && python3 -m http.server 8080
 ```
+
 Open **http://localhost:8080**
-
-(No Node server needed for production.)
-
----
-
-## Legacy Node server
-The old `server.js` + SQLite setup still works locally if you prefer:
-```bash
-npm install && npm start
-```
-For production, use **Supabase + Netlify** instead.

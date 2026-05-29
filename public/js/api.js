@@ -9,15 +9,30 @@ export const DEPARTMENTS = ["Transport", "Facilities", "Kitchen", "Security", "F
 export const CATEGORIES = ["General", "Supplies", "Maintenance", "Transport", "Security", "Farming", "Other"];
 export const PRIORITIES = ["low", "normal", "high", "urgent"];
 
+let _client = null;
+
+export function isConfigured() {
+  return Boolean(
+    SUPABASE_URL &&
+      SUPABASE_ANON_KEY &&
+      !SUPABASE_URL.includes("YOUR_PROJECT") &&
+      !SUPABASE_ANON_KEY.includes("YOUR_ANON")
+  );
+}
+
 function assertConfigured() {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.includes("YOUR_PROJECT")) {
+  if (!isConfigured()) {
     throw new Error(
-      "Supabase not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY (see README)."
+      "Supabase not linked. In Netlify set SUPABASE_URL + SUPABASE_ANON_KEY (Publishable key), then redeploy."
     );
   }
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+function getSupabase() {
+  assertConfigured();
+  if (!_client) _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return _client;
+}
 
 function formatDisplay(iso) {
   if (!iso) return "";
@@ -61,13 +76,13 @@ export async function hashPin(pin, salt) {
 
 async function getSetting(key) {
   assertConfigured();
-  const { data, error } = await supabase.from("settings").select("value").eq("key", key).maybeSingle();
+  const { data, error } = await getSupabase().from("settings").select("value").eq("key", key).maybeSingle();
   if (error) throw new Error(error.message);
   return data?.value ?? null;
 }
 
 async function setSetting(key, value) {
-  const { error } = await supabase.from("settings").upsert({ key, value }, { onConflict: "key" });
+  const { error } = await getSupabase().from("settings").upsert({ key, value }, { onConflict: "key" });
   if (error) throw new Error(error.message);
 }
 
@@ -145,7 +160,7 @@ export async function getTicketMeta() {
 
 export async function getStats() {
   assertConfigured();
-  const { data, error } = await supabase.from("requests").select("status");
+  const { data, error } = await getSupabase().from("requests").select("status");
   if (error) throw new Error(error.message);
   const rows = data || [];
   const newCount = rows.filter((r) => r.status === "open").length;
@@ -155,7 +170,7 @@ export async function getStats() {
 
 export async function listRequests(params = {}) {
   assertConfigured();
-  let q = supabase.from("requests").select("*");
+  let q = getSupabase().from("requests").select("*");
   if (params.department) q = q.eq("department", params.department);
   if (params.status) q = q.eq("status", params.status);
   const { data, error } = await q.order("created_at", { ascending: false });
@@ -173,7 +188,7 @@ export async function listRequests(params = {}) {
 
 export async function getRequest(id) {
   assertConfigured();
-  const { data: request, error: e1 } = await supabase.from("requests").select("*").eq("id", id).maybeSingle();
+  const { data: request, error: e1 } = await getSupabase().from("requests").select("*").eq("id", id).maybeSingle();
   if (e1) throw new Error(e1.message);
   if (!request) throw new Error("Not found.");
   const { data: messages, error: e2 } = await supabase
@@ -218,10 +233,10 @@ export async function submitRequest(body) {
     updated_at: now,
   };
 
-  const { error: e1 } = await supabase.from("requests").insert(row);
+  const { error: e1 } = await getSupabase().from("requests").insert(row);
   if (e1) throw new Error(e1.message);
 
-  const { error: e2 } = await supabase.from("messages").insert({
+  const { error: e2 } = await getSupabase().from("messages").insert({
     request_id: id,
     author_role: "requester",
     author_name: row.requester_name,
@@ -239,7 +254,7 @@ export async function patchStatus(id, body) {
   const allowed = ["open", "in_progress", "pending_info", "resolved", "closed", "declined"];
   if (!allowed.includes(status)) throw new Error("Invalid status.");
 
-  const { data: row, error: e0 } = await supabase.from("requests").select("*").eq("id", id).maybeSingle();
+  const { data: row, error: e0 } = await getSupabase().from("requests").select("*").eq("id", id).maybeSingle();
   if (e0) throw new Error(e0.message);
   if (!row) throw new Error("Not found.");
 
@@ -261,7 +276,7 @@ export async function patchStatus(id, body) {
     patch.declined_by = name;
   }
 
-  const { error } = await supabase.from("requests").update(patch).eq("id", id);
+  const { error } = await getSupabase().from("requests").update(patch).eq("id", id);
   if (error) throw new Error(error.message);
   return { ok: true, status };
 }
@@ -269,7 +284,7 @@ export async function patchStatus(id, body) {
 export async function markReceived(id, body) {
   assertConfigured();
   const { requester_name, note } = body || {};
-  const { data: row, error: e0 } = await supabase.from("requests").select("*").eq("id", id).maybeSingle();
+  const { data: row, error: e0 } = await getSupabase().from("requests").select("*").eq("id", id).maybeSingle();
   if (e0) throw new Error(e0.message);
   if (!row) throw new Error("Not found.");
   if (row.status !== "resolved") throw new Error("Ticket must be Resolved before you can Close it.");
@@ -282,7 +297,7 @@ export async function markReceived(id, body) {
     .eq("id", id);
   if (e1) throw new Error(e1.message);
 
-  await supabase.from("messages").insert({
+  await getSupabase().from("messages").insert({
     request_id: id,
     author_role: "requester",
     author_name: name,
@@ -295,7 +310,7 @@ export async function markReceived(id, body) {
 export async function reopenTicket(id, body) {
   assertConfigured();
   const { requester_name, note } = body || {};
-  const { data: row, error: e0 } = await supabase.from("requests").select("*").eq("id", id).maybeSingle();
+  const { data: row, error: e0 } = await getSupabase().from("requests").select("*").eq("id", id).maybeSingle();
   if (e0) throw new Error(e0.message);
   if (!row) throw new Error("Not found.");
   if (!["resolved", "closed"].includes(row.status)) {
@@ -304,10 +319,10 @@ export async function reopenTicket(id, body) {
 
   const t = new Date().toISOString();
   const name = (requester_name || row.requester_name).trim();
-  const { error } = await supabase.from("requests").update({ status: "open", updated_at: t }).eq("id", id);
+  const { error } = await getSupabase().from("requests").update({ status: "open", updated_at: t }).eq("id", id);
   if (error) throw new Error(error.message);
 
-  await supabase.from("messages").insert({
+  await getSupabase().from("messages").insert({
     request_id: id,
     author_role: "requester",
     author_name: name,
@@ -322,12 +337,12 @@ export async function postMessage(id, body) {
   const { author_role, author_name, body: text } = body || {};
   if (!text?.trim()) throw new Error("Message required.");
 
-  const { data: row, error: e0 } = await supabase.from("requests").select("status, first_seen_at").eq("id", id).maybeSingle();
+  const { data: row, error: e0 } = await getSupabase().from("requests").select("status, first_seen_at").eq("id", id).maybeSingle();
   if (e0) throw new Error(e0.message);
   if (!row) throw new Error("Not found.");
 
   const t = new Date().toISOString();
-  const { error: e1 } = await supabase.from("messages").insert({
+  const { error: e1 } = await getSupabase().from("messages").insert({
     request_id: id,
     author_role: author_role === "manager" ? "manager" : "requester",
     author_name: (author_name || "User").trim(),
@@ -351,7 +366,7 @@ export async function postMessage(id, body) {
 
 export async function downloadCsv(from, to) {
   assertConfigured();
-  let q = supabase.from("requests").select("*").order("created_at", { ascending: true });
+  let q = getSupabase().from("requests").select("*").order("created_at", { ascending: true });
   if (from) q = q.gte("created_at", from);
   if (to) q = q.lte("created_at", to + "T23:59:59.999Z");
   const { data, error } = await q;
