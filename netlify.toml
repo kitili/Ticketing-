@@ -1,3 +1,16 @@
 [build]
   publish = "public"
-  command = "node scripts/write-config.js"
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"

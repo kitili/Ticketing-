@@ -1,0 +1,17 @@
+{
+  "name": "Silverleaf Ops Ticket Desk",
+  "short_name": "Ops Desk",
+  "description": "Internal ops tickets for Silverleaf departments",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#0d5c4b",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

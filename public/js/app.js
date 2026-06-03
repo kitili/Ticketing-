@@ -3,6 +3,9 @@
  */
 
 import * as api from "./api.js";
+import { isOnline, onConnectivityChange } from "./connectivity.js";
+import { startAutoSync, syncNow } from "./sync.js";
+import * as store from "./offline-store.js";
 import {
   showToast,
   statusLabel,
@@ -13,6 +16,8 @@ import {
 } from "./ui.js";
 
 const SESSION_KEY = "ops_desk_user";
+const connBar = document.getElementById("connectivity-bar");
+const btnSync = document.getElementById("btn-sync");
 
 let user = null;
 let currentView = "list";
@@ -21,7 +26,7 @@ let selectedId = null;
 // --- Session ---
 function loadSession() {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(SESSION_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -29,12 +34,79 @@ function loadSession() {
 }
 
 function saveSession(u) {
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(u));
+  localStorage.setItem(SESSION_KEY, JSON.stringify(u));
 }
 
 function clearSession() {
-  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_KEY);
   user = null;
+}
+
+async function updateConnectivityBar() {
+  if (!connBar) return;
+  const pending = await store.outboxCount();
+  const online = isOnline();
+
+  if (!online) {
+    connBar.textContent =
+      pending > 0
+        ? "Offline — " + pending + " change(s) queued. They will sync when you are back online."
+        : "Offline — you can still open tickets and work from cached data.";
+    connBar.className = "connectivity-bar";
+    connBar.classList.remove("hidden");
+  } else if (pending > 0) {
+    connBar.textContent = "Online — " + pending + " change(s) waiting to sync.";
+    connBar.className = "connectivity-bar online-pending";
+    connBar.classList.remove("hidden");
+  } else {
+    connBar.classList.add("hidden");
+  }
+
+  if (btnSync) {
+    btnSync.classList.toggle("hidden", !pending || !online);
+  }
+}
+
+function setupConnectivity() {
+  onConnectivityChange(() => {
+    updateConnectivityBar();
+    if (isOnline()) syncNow().then(refreshCurrentView).catch(() => {});
+  });
+  if (btnSync) {
+    btnSync.addEventListener("click", async () => {
+      btnSync.disabled = true;
+      try {
+        const { synced, errors } = await syncNow();
+        if (errors.length) {
+          showToast("Sync partly failed: " + errors[0].message, "error");
+        } else if (synced) {
+          showToast("Synced " + synced + " item(s).", "success");
+        } else {
+          showToast("Nothing to sync.", "success");
+        }
+        await updateConnectivityBar();
+        refreshCurrentView();
+      } catch (err) {
+        showToast(err.message, "error");
+      } finally {
+        btnSync.disabled = false;
+      }
+    });
+  }
+  updateConnectivityBar();
+  setInterval(updateConnectivityBar, 8000);
+}
+
+function refreshCurrentView() {
+  if (!user) return;
+  if (user.role === "manager") {
+    loadManagerInbox();
+    if (selectedId) openManagerDetail(selectedId);
+    refreshBadge();
+  } else {
+    loadRequesterList();
+    if (selectedId) openRequesterDetail(selectedId);
+  }
 }
 
 // --- Screens ---
@@ -49,6 +121,7 @@ function showLogin() {
 function showApp() {
   loginScreen.classList.add("hidden");
   appScreen.classList.remove("hidden");
+  updateConnectivityBar();
   updateHeader();
   if (user.role === "manager") {
     initManager();
@@ -189,7 +262,11 @@ document.getElementById("submit-form").addEventListener("submit", async (e) => {
     const res = await api.submitRequest(body);
     user.requesterName = body.requester_name;
     saveSession(user);
-    showToast("Ticket " + res.id + " opened.", "success");
+    showToast(
+      res._queued ? "Ticket " + res.id + " saved offline — will sync when online." : "Ticket " + res.id + " opened.",
+      "success"
+    );
+    updateConnectivityBar();
     e.target.reset();
     document.getElementById("submit-department").value = user.department;
     document.getElementById("submit-name").value = body.requester_name;
@@ -276,12 +353,13 @@ async function openRequesterDetail(id) {
       const body = document.getElementById("req-reply").value;
       if (!body.trim()) return;
       try {
-        await api.postMessage(id, {
+        const res = await api.postMessage(id, {
           author_role: "requester",
           author_name: user.requesterName || request.requester_name,
           body,
         });
-        showToast("Message sent.", "success");
+        showToast(res._queued ? "Comment queued for sync." : "Message sent.", "success");
+        updateConnectivityBar();
         openRequesterDetail(id);
       } catch (err) {
         showToast(err.message, "error");
@@ -290,11 +368,12 @@ async function openRequesterDetail(id) {
 
     document.getElementById("btn-received")?.addEventListener("click", async () => {
       try {
-        await api.markReceived(id, {
+        const res = await api.markReceived(id, {
           requester_name: user.requesterName || request.requester_name,
           note: document.getElementById("receive-note")?.value || "",
         });
-        showToast("Ticket closed.", "success");
+        showToast(res._queued ? "Close queued for sync." : "Ticket closed.", "success");
+        updateConnectivityBar();
         openRequesterDetail(id);
         loadRequesterList();
       } catch (err) {
@@ -304,11 +383,12 @@ async function openRequesterDetail(id) {
 
     document.getElementById("btn-reopen")?.addEventListener("click", async () => {
       try {
-        await api.reopenTicket(id, {
+        const res = await api.reopenTicket(id, {
           requester_name: user.requesterName || request.requester_name,
           note: document.getElementById("reopen-note")?.value || "",
         });
-        showToast("Ticket reopened.", "success");
+        showToast(res._queued ? "Reopen queued for sync." : "Ticket reopened.", "success");
+        updateConnectivityBar();
         openRequesterDetail(id);
         loadRequesterList();
       } catch (err) {
@@ -428,11 +508,12 @@ async function openManagerDetail(id) {
         const status = btn.getAttribute("data-status");
         if (status === "declined" && !confirm("Decline this ticket?")) return;
         try {
-          await api.patchStatus(id, {
+          const res = await api.patchStatus(id, {
             status,
             actor_name: "Operations Manager",
           });
-          showToast("Status: " + statusLabel(status), "success");
+          showToast(res._queued ? "Status queued for sync." : "Status: " + statusLabel(status), "success");
+          updateConnectivityBar();
           openManagerDetail(id);
           refreshBadge();
         } catch (err) {
@@ -445,12 +526,13 @@ async function openManagerDetail(id) {
       const body = document.getElementById("mgr-reply").value;
       if (!body.trim()) return;
       try {
-        await api.postMessage(id, {
+        const res = await api.postMessage(id, {
           author_role: "manager",
           author_name: "Operations Manager",
           body,
         });
-        showToast("Reply sent.", "success");
+        showToast(res._queued ? "Reply queued for sync." : "Reply sent.", "success");
+        updateConnectivityBar();
         openManagerDetail(id);
         refreshBadge();
       } catch (err) {
@@ -486,6 +568,34 @@ document.getElementById("btn-change-pin").addEventListener("click", async () => 
   }
 });
 
+function isLocalDev() {
+  const h = location.hostname;
+  return h === "localhost" || h === "127.0.0.1";
+}
+
+function localSetupMessage() {
+  return (
+    "Database not connected. On this computer, edit public/js/config.js: " +
+    "copy public/js/config.example.js if needed, then paste your Supabase Project URL and Publishable key " +
+    "(Supabase → Settings → API Keys). Save the file and refresh this page. " +
+    "If errors persist, hard-refresh (Ctrl+Shift+R) or clear site data for localhost."
+  );
+}
+
+async function clearStaleServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const r of regs) await r.unregister();
+    if (typeof caches !== "undefined") {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 function showSetupError(msg) {
   const el = document.getElementById("setup-error");
   if (!el) return;
@@ -519,20 +629,37 @@ async function boot() {
   pinWrap.classList.toggle("hidden", roleSelect.value !== "manager");
 
   if (!api.isConfigured()) {
-    showSetupError(
-      "Supabase is not connected. In Netlify → Site settings → Environment variables, add SUPABASE_URL and SUPABASE_ANON_KEY (use the Publishable key, not the Secret key), then click Deploys → Trigger deploy."
-    );
+    if (isLocalDev()) {
+      await clearStaleServiceWorker();
+      showSetupError(localSetupMessage());
+    } else {
+      showSetupError(
+        "Supabase is not connected on this site. Netlify → Site configuration → Environment variables: add SUPABASE_URL (Project URL) and SUPABASE_ANON_KEY (Publishable key from Supabase → API Keys — not Secret). Save, then Deploys → Trigger deploy → Deploy site. After deploy, open " +
+          location.origin +
+          "/js/env.js — your Project URL must appear there, not empty quotes. See SETUP-SUPABASE.md in the repo."
+      );
+    }
     showLogin();
     return;
   }
 
+  setupConnectivity();
+  startAutoSync();
+
   try {
+    await api.refreshPinCache();
     const pinStatus = await api.getManagerPinStatus();
     if (!pinStatus.configured) {
       pinHint.textContent = "Run supabase/schema.sql in Supabase SQL Editor (sets manager PIN Ops2026).";
+    } else if (!isOnline()) {
+      pinHint.textContent = "Offline mode — manager PIN uses last cached settings.";
     }
   } catch (err) {
-    pinHint.textContent = "Cannot reach Supabase: " + err.message;
+    if (!isOnline()) {
+      pinHint.textContent = "Offline — sign in as department staff without network, or manager after one online login.";
+    } else {
+      pinHint.textContent = "Cannot reach Supabase: " + err.message;
+    }
   }
 
   user = loadSession();

@@ -42,7 +42,7 @@ export function renderRequestTable(container, requests, onRowClick) {
     .map(
       (r) => `
     <tr class="row-click" data-id="${escapeHtml(r.id)}">
-      <td><strong>${escapeHtml(r.id)}</strong></td>
+      <td><strong>${escapeHtml(r.id)}</strong>${r._pending ? ' <span class="sync-tag">pending sync</span>' : ""}${r._offline ? ' <span class="sync-tag offline-tag">offline</span>' : ""}</td>
       <td>${escapeHtml(r.department)}</td>
       <td>${escapeHtml(r.title)}${r.priority === "urgent" || r.urgency === "urgent" ? ' <span class="urgent-tag">URGENT</span>' : ""}</td>
       <td><span class="${statusClass(r.status)}">${statusLabel(r.status)}</span></td>

@@ -1,153 +1,143 @@
 /**
- * Supabase client + crypto helpers.
+ * API facade — online Supabase + offline cache/outbox.
  */
 
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/+esm";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+import { isOnline } from "./connectivity.js";
+import * as remote from "./api-remote.js";
+import * as store from "./offline-store.js";
+import { syncNow, refreshPinCache } from "./sync.js";
 
-export const DEPARTMENTS = ["Transport", "Facilities", "Kitchen", "Security", "Farms"];
-export const CATEGORIES = ["General", "Supplies", "Maintenance", "Transport", "Security", "Farming", "Other"];
-export const PRIORITIES = ["low", "normal", "high", "urgent"];
+export const DEPARTMENTS = remote.DEPARTMENTS;
+export const CATEGORIES = remote.CATEGORIES;
+export const PRIORITIES = remote.PRIORITIES;
 
-let _client = null;
-
-export function isConfigured() {
-  return Boolean(
-    SUPABASE_URL &&
-      SUPABASE_ANON_KEY &&
-      !SUPABASE_URL.includes("YOUR_PROJECT") &&
-      !SUPABASE_ANON_KEY.includes("YOUR_ANON")
-  );
-}
-
-function assertConfigured() {
-  if (!isConfigured()) {
-    throw new Error(
-      "Supabase not linked. In Netlify set SUPABASE_URL + SUPABASE_ANON_KEY (Publishable key), then redeploy."
-    );
-  }
-}
-
-function getSupabase() {
-  assertConfigured();
-  if (!_client) _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  return _client;
-}
+export const isConfigured = remote.isConfigured;
+export const hashPin = remote.hashPin;
 
 function formatDisplay(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" });
+  return remote.formatDisplay(iso);
 }
 
-function hexToBytes(hex) {
-  const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  return out;
+function shouldUseNetwork() {
+  return isOnline() && isConfigured();
 }
 
-function bytesToHex(bytes) {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-export async function hashPin(pin, salt) {
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(pin),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  const bits = await crypto.subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      salt: enc.encode(salt),
-      iterations: 120000,
-      hash: "SHA-256",
-    },
-    keyMaterial,
-    256
-  );
-  return bytesToHex(new Uint8Array(bits));
-}
-
-async function getSetting(key) {
-  assertConfigured();
-  const { data, error } = await getSupabase().from("settings").select("value").eq("key", key).maybeSingle();
-  if (error) throw new Error(error.message);
-  return data?.value ?? null;
-}
-
-async function setSetting(key, value) {
-  const { error } = await getSupabase().from("settings").upsert({ key, value }, { onConflict: "key" });
-  if (error) throw new Error(error.message);
-}
-
-function mapRequest(row) {
-  if (!row) return row;
-  return {
-    ...row,
-    created_at_display: formatDisplay(row.created_at),
-    updated_at_display: formatDisplay(row.updated_at),
-    resolved_at_display: formatDisplay(row.resolved_at),
-    closed_at_display: formatDisplay(row.closed_at),
-  };
-}
-
-function mapMessage(m) {
-  return { ...m, created_at_display: formatDisplay(m.created_at) };
-}
-
-async function nextRequestId() {
-  const { data, error } = await supabase
-    .from("requests")
-    .select("id")
-    .like("id", "REQ-%")
-    .order("id", { ascending: false })
-    .limit(50);
-  if (error) throw new Error(error.message);
-  let max = 0;
-  for (const r of data || []) {
-    const m = /^REQ-(\d+)$/.exec(r.id);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
+function applyOutboxToRequest(req, outbox) {
+  let r = { ...req };
+  const id = r.id;
+  for (const item of outbox) {
+    const rid = item.requestId || item.localId;
+    if (rid !== id && (item.localId !== id)) continue;
+    if (item.type === "patch_status") {
+      r = { ...r, status: item.payload.status, updated_at: item.createdAt, _pending: true };
+    }
+    if (item.type === "mark_received") {
+      r = { ...r, status: "closed", _pending: true };
+    }
+    if (item.type === "reopen") {
+      r = { ...r, status: "open", _pending: true };
+    }
   }
-  return "REQ-" + String(max + 1).padStart(3, "0");
+  return r;
+}
+
+async function mergeRequestList(params, remoteList) {
+  const outbox = await store.getOutbox();
+  const localCreates = outbox
+    .filter((o) => o.type === "create_request")
+    .map((o) => {
+      const now = o.createdAt;
+      const p = o.payload;
+      return remote.mapRequest({
+        id: o.localId,
+        department: p.department,
+        requester_name: p.requester_name,
+        campus: p.campus || "",
+        title: p.title,
+        details: p.details,
+        category: p.category || "General",
+        priority: p.priority || "normal",
+        urgency: p.priority === "urgent" ? "urgent" : "normal",
+        status: "open",
+        created_at: now,
+        updated_at: now,
+        _pending: true,
+        _offline: true,
+      });
+    });
+
+  let rows = [...remoteList, ...localCreates];
+  if (!shouldUseNetwork()) {
+    const cached = await store.getAllRequests();
+    rows = cached.length ? cached : rows;
+  }
+
+  const seen = new Set();
+  const merged = [];
+  for (const r of rows) {
+    const applied = applyOutboxToRequest(r, outbox);
+    if (seen.has(applied.id)) continue;
+    seen.add(applied.id);
+    if (params.department && applied.department !== params.department) continue;
+    if (params.status && applied.status !== params.status) continue;
+    merged.push(applied);
+  }
+
+  const order = { open: 0, in_progress: 1, pending_info: 2, resolved: 3 };
+  merged.sort((a, b) => {
+    const sa = order[a.status] ?? 9;
+    const sb = order[b.status] ?? 9;
+    if (sa !== sb) return sa - sb;
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+  return { requests: merged };
 }
 
 export async function login(body) {
-  const { role, department, pin } = body || {};
+  const { role, pin } = body || {};
+
   if (role === "manager") {
-    const stored = await getSetting("manager_pin_hash");
-    const salt = await getSetting("pin_salt");
-    if (!stored || !salt) throw new Error("Manager PIN not configured in Supabase.");
+    if (shouldUseNetwork()) {
+      const result = await remote.loginRemote(body);
+      await refreshPinCache();
+      return result;
+    }
+    const { salt, hash } = await store.getCachedPinSettings();
+    if (!salt || !hash) {
+      throw new Error("Offline: manager login needs one online sign-in first to cache PIN.");
+    }
     const h = await hashPin(String(pin || ""), salt);
-    if (h !== stored) throw new Error("Invalid manager PIN.");
+    if (h !== hash) throw new Error("Invalid manager PIN.");
     return { ok: true, user: { role: "manager", name: "Operations Manager", department: null } };
   }
+
   if (role === "requester") {
+    if (shouldUseNetwork()) return remote.loginRemote(body);
+    const { department } = body || {};
     if (!DEPARTMENTS.includes(department)) throw new Error("Invalid department.");
     return { ok: true, user: { role: "requester", name: null, department } };
   }
+
   throw new Error("Invalid role.");
 }
 
 export async function getManagerPinStatus() {
-  const stored = await getSetting("manager_pin_hash");
-  return { configured: Boolean(stored && !stored.includes("PLACEHOLDER")) };
+  if (shouldUseNetwork()) {
+    const s = await remote.getManagerPinStatusRemote();
+    await refreshPinCache();
+    return s;
+  }
+  const { hash } = await store.getCachedPinSettings();
+  return { configured: Boolean(hash) };
 }
 
 export async function changeManagerPin(old_pin, new_pin) {
-  if (!new_pin || String(new_pin).length < 4) throw new Error("New PIN too short.");
-  const salt = await getSetting("pin_salt");
-  const stored = await getSetting("manager_pin_hash");
-  if (!salt || !stored) throw new Error("PIN not configured.");
-  const oldHash = await hashPin(String(old_pin), salt);
-  if (oldHash !== stored) throw new Error("Old PIN is incorrect.");
-  await setSetting("manager_pin_hash", await hashPin(String(new_pin), salt));
-  return { ok: true };
+  if (!shouldUseNetwork()) {
+    throw new Error("Change PIN requires an internet connection.");
+  }
+  const res = await remote.changeManagerPinRemote(old_pin, new_pin);
+  await refreshPinCache();
+  return res;
 }
 
 export async function getDepartments() {
@@ -159,238 +149,241 @@ export async function getTicketMeta() {
 }
 
 export async function getStats() {
-  assertConfigured();
-  const { data, error } = await getSupabase().from("requests").select("status");
-  if (error) throw new Error(error.message);
-  const rows = data || [];
-  const newCount = rows.filter((r) => r.status === "open").length;
-  const openCount = rows.filter((r) => !["closed", "declined"].includes(r.status)).length;
+  if (shouldUseNetwork()) {
+    try {
+      const s = await remote.getStatsRemote();
+      return s;
+    } catch {
+      /* fall through to cache */
+    }
+  }
+  const { requests } = await mergeRequestList({}, []);
+  const newCount = requests.filter((r) => r.status === "open").length;
+  const openCount = requests.filter((r) => !["closed", "declined"].includes(r.status)).length;
   return { newCount, openCount };
 }
 
 export async function listRequests(params = {}) {
-  assertConfigured();
-  let q = getSupabase().from("requests").select("*");
-  if (params.department) q = q.eq("department", params.department);
-  if (params.status) q = q.eq("status", params.status);
-  const { data, error } = await q.order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-
-  const order = { open: 0, in_progress: 1, pending_info: 2, resolved: 3 };
-  const sorted = (data || []).sort((a, b) => {
-    const sa = order[a.status] ?? 9;
-    const sb = order[b.status] ?? 9;
-    if (sa !== sb) return sa - sb;
-    return new Date(b.created_at) - new Date(a.created_at);
-  });
-  return { requests: sorted.map(mapRequest) };
+  if (shouldUseNetwork()) {
+    try {
+      const { requests } = await remote.listRequestsRemote(params);
+      await store.cacheRequests(requests);
+      return mergeRequestList(params, requests);
+    } catch (err) {
+      if (!navigator.onLine) {
+        return mergeRequestList(params, []);
+      }
+      throw err;
+    }
+  }
+  return mergeRequestList(params, []);
 }
 
 export async function getRequest(id) {
-  assertConfigured();
-  const { data: request, error: e1 } = await getSupabase().from("requests").select("*").eq("id", id).maybeSingle();
-  if (e1) throw new Error(e1.message);
-  if (!request) throw new Error("Not found.");
-  const { data: messages, error: e2 } = await supabase
-    .from("messages")
-    .select("*")
-    .eq("request_id", id)
-    .order("created_at", { ascending: true });
-  if (e2) throw new Error(e2.message);
-  return { request: mapRequest(request), messages: (messages || []).map(mapMessage) };
+  const resolvedId = await store.resolveId(id);
+
+  if (shouldUseNetwork()) {
+    try {
+      const data = await remote.getRequestRemote(resolvedId);
+      await store.putRequest(data.request);
+      await store.cacheMessagesForRequest(resolvedId, data.messages);
+      return data;
+    } catch (err) {
+      if (!navigator.onLine) {
+        return getRequestFromCache(id);
+      }
+      throw err;
+    }
+  }
+  return getRequestFromCache(id);
+}
+
+async function getRequestFromCache(id) {
+  const resolvedId = await store.resolveId(id);
+  let request = await store.getRequest(resolvedId);
+  if (!request && id !== resolvedId) request = await store.getRequest(id);
+  if (!request) throw new Error("Not found (offline — open this ticket once while online).");
+
+  const outbox = await store.getOutbox();
+  request = applyOutboxToRequest(remote.mapRequest(request), outbox);
+
+  let messages = await store.getMessagesForRequest(resolvedId);
+  if (!messages.length && id !== resolvedId) {
+    messages = await store.getMessagesForRequest(id);
+  }
+  messages = messages.map((m) => ({
+    ...m,
+    created_at_display: m.created_at_display || formatDisplay(m.created_at),
+  }));
+
+  for (const item of outbox) {
+    if (item.type !== "post_message") continue;
+    const rid = item.requestId || item.localId;
+    if (rid !== id && rid !== resolvedId) continue;
+    messages.push({
+      author_role: item.payload.author_role,
+      author_name: item.payload.author_name,
+      body: item.payload.body,
+      created_at: item.createdAt,
+      created_at_display: formatDisplay(item.createdAt),
+      _local: true,
+    });
+  }
+  messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  return { request, messages };
 }
 
 export async function submitRequest(body) {
-  assertConfigured();
-  const {
-    department,
-    requester_name,
-    campus,
-    title,
-    details,
-    category,
-    priority,
-  } = body || {};
-  if (!department || !requester_name || !title || !details) {
-    throw new Error("Missing required fields.");
+  if (shouldUseNetwork()) {
+    try {
+      const res = await remote.submitRequestRemote(body);
+      await store.putRequest({ ...res.row, _pending: false });
+      syncNow().catch(() => {});
+      return { id: res.id, status: res.status, created_at: res.created_at };
+    } catch (err) {
+      if (navigator.onLine) throw err;
+    }
   }
-  if (!DEPARTMENTS.includes(department)) throw new Error("Invalid department.");
 
-  const id = await nextRequestId();
+  const localId = store.generateLocalRequestId();
   const now = new Date().toISOString();
-  const row = {
-    id,
-    department,
-    requester_name: requester_name.trim(),
-    campus: (campus || "").trim(),
-    title: title.trim(),
-    details: details.trim(),
-    urgency: priority === "urgent" ? "urgent" : "normal",
-    category: (category || "General").trim(),
-    priority: PRIORITIES.includes(priority) ? priority : "normal",
+  const row = remote.mapRequest({
+    id: localId,
+    department: body.department,
+    requester_name: body.requester_name.trim(),
+    campus: (body.campus || "").trim(),
+    title: body.title.trim(),
+    details: body.details.trim(),
+    category: body.category || "General",
+    priority: body.priority || "normal",
+    urgency: body.priority === "urgent" ? "urgent" : "normal",
     status: "open",
     created_at: now,
     updated_at: now,
-  };
+    _pending: true,
+    _offline: true,
+  });
 
-  const { error: e1 } = await getSupabase().from("requests").insert(row);
-  if (e1) throw new Error(e1.message);
-
-  const { error: e2 } = await getSupabase().from("messages").insert({
-    request_id: id,
+  await store.putRequest(row);
+  await store.addLocalMessage(localId, {
     author_role: "requester",
     author_name: row.requester_name,
-    body: "Ticket opened.",
+    body: "Ticket opened (offline — will sync).",
     created_at: now,
+    created_at_display: formatDisplay(now),
   });
-  if (e2) throw new Error(e2.message);
+  await store.addOutbox({
+    type: "create_request",
+    localId,
+    requestId: localId,
+    payload: body,
+  });
 
-  return { id, status: "open", created_at: now };
+  return { id: localId, status: "open", created_at: now, _queued: true };
 }
 
 export async function patchStatus(id, body) {
-  assertConfigured();
-  const { status, actor_name } = body || {};
-  const allowed = ["open", "in_progress", "pending_info", "resolved", "closed", "declined"];
-  if (!allowed.includes(status)) throw new Error("Invalid status.");
+  const resolvedId = await store.resolveId(id);
 
-  const { data: row, error: e0 } = await getSupabase().from("requests").select("*").eq("id", id).maybeSingle();
-  if (e0) throw new Error(e0.message);
-  if (!row) throw new Error("Not found.");
+  if (shouldUseNetwork()) {
+    try {
+      const res = await remote.patchStatusRemote(resolvedId, body);
+      syncNow().catch(() => {});
+      return res;
+    } catch (err) {
+      if (navigator.onLine) throw err;
+    }
+  }
 
+  const req = await store.getRequest(resolvedId) || (await store.getRequest(id));
+  if (!req) throw new Error("Not found.");
   const t = new Date().toISOString();
-  const name = (actor_name || "Operations Manager").trim();
-  const patch = { status, updated_at: t };
-
-  if (!row.first_seen_at) patch.first_seen_at = t;
-  if (status === "resolved") {
-    patch.resolved_at = t;
-    patch.resolved_by = name;
-  }
-  if (status === "closed") {
-    patch.closed_at = t;
-    patch.closed_by = name;
-  }
-  if (status === "declined") {
-    patch.declined_at = t;
-    patch.declined_by = name;
-  }
-
-  const { error } = await getSupabase().from("requests").update(patch).eq("id", id);
-  if (error) throw new Error(error.message);
-  return { ok: true, status };
+  const updated = { ...req, status: body.status, updated_at: t, _pending: true };
+  await store.putRequest(updated);
+  await store.addOutbox({ type: "patch_status", requestId: resolvedId, payload: body });
+  return { ok: true, status: body.status, _queued: true };
 }
 
 export async function markReceived(id, body) {
-  assertConfigured();
-  const { requester_name, note } = body || {};
-  const { data: row, error: e0 } = await getSupabase().from("requests").select("*").eq("id", id).maybeSingle();
-  if (e0) throw new Error(e0.message);
-  if (!row) throw new Error("Not found.");
-  if (row.status !== "resolved") throw new Error("Ticket must be Resolved before you can Close it.");
+  const resolvedId = await store.resolveId(id);
 
-  const t = new Date().toISOString();
-  const name = (requester_name || row.requester_name).trim();
-  const { error: e1 } = await supabase
-    .from("requests")
-    .update({ status: "closed", closed_at: t, closed_by: name, updated_at: t })
-    .eq("id", id);
-  if (e1) throw new Error(e1.message);
+  if (shouldUseNetwork()) {
+    try {
+      const res = await remote.markReceivedRemote(resolvedId, body);
+      syncNow().catch(() => {});
+      return res;
+    } catch (err) {
+      if (navigator.onLine) throw err;
+    }
+  }
 
-  await getSupabase().from("messages").insert({
-    request_id: id,
-    author_role: "requester",
-    author_name: name,
-    body: note?.trim() ? "Closed: " + note.trim() : "Closed by requester.",
-    created_at: t,
-  });
-  return { ok: true, status: "closed" };
+  const req = (await store.getRequest(resolvedId)) || (await store.getRequest(id));
+  if (req) {
+    const t = new Date().toISOString();
+    await store.putRequest({
+      ...req,
+      status: "closed",
+      closed_at: t,
+      updated_at: t,
+      _pending: true,
+    });
+  }
+  await store.addOutbox({ type: "mark_received", requestId: resolvedId, payload: body });
+  return { ok: true, status: "closed", _queued: true };
 }
 
 export async function reopenTicket(id, body) {
-  assertConfigured();
-  const { requester_name, note } = body || {};
-  const { data: row, error: e0 } = await getSupabase().from("requests").select("*").eq("id", id).maybeSingle();
-  if (e0) throw new Error(e0.message);
-  if (!row) throw new Error("Not found.");
-  if (!["resolved", "closed"].includes(row.status)) {
-    throw new Error("Only resolved/closed tickets can be reopened.");
+  const resolvedId = await store.resolveId(id);
+
+  if (shouldUseNetwork()) {
+    try {
+      const res = await remote.reopenTicketRemote(resolvedId, body);
+      syncNow().catch(() => {});
+      return res;
+    } catch (err) {
+      if (navigator.onLine) throw err;
+    }
   }
 
-  const t = new Date().toISOString();
-  const name = (requester_name || row.requester_name).trim();
-  const { error } = await getSupabase().from("requests").update({ status: "open", updated_at: t }).eq("id", id);
-  if (error) throw new Error(error.message);
-
-  await getSupabase().from("messages").insert({
-    request_id: id,
-    author_role: "requester",
-    author_name: name,
-    body: note?.trim() ? "Reopened: " + note.trim() : "Ticket reopened.",
-    created_at: t,
-  });
-  return { ok: true, status: "open" };
+  const req = (await store.getRequest(resolvedId)) || (await store.getRequest(id));
+  if (req) {
+    await store.putRequest({ ...req, status: "open", updated_at: new Date().toISOString(), _pending: true });
+  }
+  await store.addOutbox({ type: "reopen", requestId: resolvedId, payload: body });
+  return { ok: true, status: "open", _queued: true };
 }
 
 export async function postMessage(id, body) {
-  assertConfigured();
-  const { author_role, author_name, body: text } = body || {};
-  if (!text?.trim()) throw new Error("Message required.");
-
-  const { data: row, error: e0 } = await getSupabase().from("requests").select("status, first_seen_at").eq("id", id).maybeSingle();
-  if (e0) throw new Error(e0.message);
-  if (!row) throw new Error("Not found.");
-
+  const resolvedId = await store.resolveId(id);
   const t = new Date().toISOString();
-  const { error: e1 } = await getSupabase().from("messages").insert({
-    request_id: id,
-    author_role: author_role === "manager" ? "manager" : "requester",
-    author_name: (author_name || "User").trim(),
-    body: text.trim(),
-    created_at: t,
-  });
-  if (e1) throw new Error(e1.message);
 
-  if (author_role === "manager" && row.status === "open") {
-    await supabase
-      .from("requests")
-      .update({
-        status: "in_progress",
-        first_seen_at: row.first_seen_at || t,
-        updated_at: t,
-      })
-      .eq("id", id);
+  if (shouldUseNetwork()) {
+    try {
+      const res = await remote.postMessageRemote(resolvedId, body);
+      syncNow().catch(() => {});
+      return res;
+    } catch (err) {
+      if (navigator.onLine) throw err;
+    }
   }
-  return { ok: true, created_at: t };
+
+  await store.addLocalMessage(resolvedId, {
+    author_role: body.author_role,
+    author_name: body.author_name,
+    body: body.body,
+    created_at: t,
+    created_at_display: formatDisplay(t),
+  });
+  await store.addOutbox({ type: "post_message", requestId: resolvedId, payload: body });
+  return { ok: true, created_at: t, _queued: true };
 }
 
 export async function downloadCsv(from, to) {
-  assertConfigured();
-  let q = getSupabase().from("requests").select("*").order("created_at", { ascending: true });
-  if (from) q = q.gte("created_at", from);
-  if (to) q = q.lte("created_at", to + "T23:59:59.999Z");
-  const { data, error } = await q;
-  if (error) throw new Error(error.message);
-
-  const headers = [
-    "id", "department", "requester_name", "campus", "title", "category", "priority",
-    "assigned_to", "status", "created_at", "resolved_at", "closed_at", "details",
-  ];
-  function esc(val) {
-    const s = String(val ?? "");
-    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-      return '"' + s.replace(/"/g, '""') + '"';
-    }
-    return s;
+  if (!shouldUseNetwork()) {
+    throw new Error("CSV export requires an internet connection.");
   }
-  const lines = [headers.join(",")];
-  for (const r of data || []) {
-    lines.push(headers.map((h) => esc(r[h])).join(","));
-  }
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "ops-tickets-export.csv";
-  a.click();
-  URL.revokeObjectURL(a.href);
+  return remote.downloadCsvRemote(from, to);
 }
+
+export { syncNow, refreshPinCache };

@@ -46,6 +46,10 @@ ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "anon_settings" ON settings;
+DROP POLICY IF EXISTS "anon_requests" ON requests;
+DROP POLICY IF EXISTS "anon_messages" ON messages;
+
 CREATE POLICY "anon_settings" ON settings FOR ALL TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "anon_requests" ON requests FOR ALL TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "anon_messages" ON messages FOR ALL TO anon USING (true) WITH CHECK (true);
@@ -54,5 +58,7 @@ CREATE POLICY "anon_messages" ON messages FOR ALL TO anon USING (true) WITH CHEC
 -- Salt + hash generated with PBKDF2-SHA256, 120000 iterations
 INSERT INTO settings(key, value) VALUES
   ('pin_salt', 'silverleaf_ops_salt_v1'),
-  ('manager_pin_hash', '5ed995e13af18cd70f3db881e3d785957310bebaf811e566f0b70ead8098236c')
+  ('manager_pin_hash', '5ed995e13af18cd70f3db881e3d785957310bebaf811e566f0b70ead8098236c'),
+  ('ops_manager_email', 'baraka@silverleaf.co.tz'),
+  ('ops_manager_phone', '+255762711796')
 ON CONFLICT (key) DO NOTHING;

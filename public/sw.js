@@ -1,0 +1,73 @@
+/**
+ * Service worker — cache app shell for offline use.
+ * config.js / env.js always use network first (so local credentials are not stale).
+ */
+const CACHE = "silverleaf-ops-v2";
+const NETWORK_FIRST = ["/js/config.js", "/js/env.js"];
+
+const ASSETS = [
+  "/",
+  "/index.html",
+  "/css/styles.css",
+  "/js/connectivity.js",
+  "/js/offline-store.js",
+  "/js/api-remote.js",
+  "/js/sync.js",
+  "/js/api.js",
+  "/js/ui.js",
+  "/js/app.js",
+  "/manifest.webmanifest",
+  "/icon.svg",
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then((cache) =>
+        Promise.allSettled(ASSETS.map((url) => cache.add(new Request(url, { cache: "reload" }))))
+      )
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+function isNetworkFirst(url) {
+  return NETWORK_FIRST.some((p) => url.pathname === p || url.pathname.endsWith(p));
+}
+
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (isNetworkFirst(url)) {
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      const fetchPromise = fetch(request)
+        .then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then((c) => c.put(request, clone));
+          }
+          return res;
+        })
+        .catch(() => cached);
+      return cached || fetchPromise;
+    })
+  );
+});
