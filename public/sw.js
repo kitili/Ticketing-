@@ -2,8 +2,18 @@
  * Service worker — cache app shell for offline use.
  * config.js / env.js always use network first (so local credentials are not stale).
  */
-const CACHE = "silverleaf-ops-v2";
-const NETWORK_FIRST = ["/js/config.js", "/js/env.js"];
+const CACHE = "silverleaf-ops-v3";
+const NETWORK_FIRST = [
+  "/js/config.js",
+  "/js/env.js",
+  "/js/api.js",
+  "/js/api-remote.js",
+  "/js/app.js",
+  "/js/sync.js",
+  "/js/offline-store.js",
+  "/js/connectivity.js",
+  "/js/ui.js",
+];
 
 const ASSETS = [
   "/",
@@ -41,7 +51,8 @@ self.addEventListener("activate", (event) => {
 });
 
 function isNetworkFirst(url) {
-  return NETWORK_FIRST.some((p) => url.pathname === p || url.pathname.endsWith(p));
+  if (NETWORK_FIRST.some((p) => url.pathname === p || url.pathname.endsWith(p))) return true;
+  return url.pathname.startsWith("/js/") && url.pathname.endsWith(".js");
 }
 
 self.addEventListener("fetch", (event) => {
