@@ -2,7 +2,7 @@
  * Service worker — cache app shell for offline use.
  * config.js / env.js always use network first (so local credentials are not stale).
  */
-const CACHE = "silverleaf-ops-v3";
+const CACHE = "silverleaf-ops-v4";
 const NETWORK_FIRST = [
   "/js/config.js",
   "/js/env.js",

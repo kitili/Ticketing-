@@ -24,10 +24,13 @@ export const SUPABASE_URL = ${JSON.stringify(url)};
 export const SUPABASE_ANON_KEY = ${JSON.stringify(key)};
 `;
 
+const buildId = (process.env.NETLIFY_COMMIT_REF || process.env.COMMIT_REF || "local").slice(0, 7);
+
 const envOut = `/** Auto-generated at build — local dev uses config.js when these are empty */
 window.__SL_ENV__ = {
   SUPABASE_URL: ${JSON.stringify(url)},
   SUPABASE_ANON_KEY: ${JSON.stringify(key)},
+  BUILD_ID: ${JSON.stringify(buildId)},
 };
 `;
 

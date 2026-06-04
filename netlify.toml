@@ -6,6 +6,11 @@
   NODE_VERSION = "20"
 
 [[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
+
+[[headers]]
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache"

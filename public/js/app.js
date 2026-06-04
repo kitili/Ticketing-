@@ -134,6 +134,12 @@ function updateHeader() {
   const title = document.getElementById("header-title");
   const meta = document.getElementById("header-meta");
   const badge = document.getElementById("badge-new");
+  const buildEl = document.getElementById("build-id");
+  const buildId = globalThis.__SL_ENV__?.BUILD_ID;
+  if (buildEl && buildId) {
+    buildEl.textContent = "build " + buildId;
+    buildEl.classList.remove("hidden");
+  }
 
   if (user.role === "manager") {
     title.textContent = "Ops Ticket Desk — Manager";

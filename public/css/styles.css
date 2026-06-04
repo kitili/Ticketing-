@@ -135,6 +135,13 @@ body {
   color: #92400e;
 }
 
+.build-id {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.75;
+  margin-top: 0.15rem;
+}
+
 .app-main {
   max-width: 1100px;
   margin: 0 auto;
