@@ -366,29 +366,77 @@ export async function postMessageRemote(id, body) {
   return { ok: true, created_at: t };
 }
 
-export async function downloadCsvRemote(from, to) {
+const EXPORT_HEADERS = [
+  "id",
+  "department",
+  "requester_name",
+  "campus",
+  "title",
+  "category",
+  "priority",
+  "assigned_to",
+  "status",
+  "created_at",
+  "resolved_at",
+  "closed_at",
+  "details",
+];
+
+export async function fetchExportRows(from, to) {
   let q = getSupabase().from("requests").select("*").order("created_at", { ascending: true });
   if (from) q = q.gte("created_at", from);
   if (to) q = q.lte("created_at", to + "T23:59:59.999Z");
   const { data, error } = await q;
   if (error) throw new Error(error.message);
+  return { headers: EXPORT_HEADERS, rows: data || [] };
+}
 
-  const headers = [
-    "id", "department", "requester_name", "campus", "title", "category", "priority",
-    "assigned_to", "status", "created_at", "resolved_at", "closed_at", "details",
-  ];
-  function esc(val) {
-    const s = String(val ?? "");
-    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-      return '"' + s.replace(/"/g, '""') + '"';
-    }
-    return s;
+function escCsv(val) {
+  const s = String(val ?? "");
+  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+    return '"' + s.replace(/"/g, '""') + '"';
   }
+  return s;
+}
+
+function escTsv(val) {
+  return String(val ?? "")
+    .replace(/\t/g, " ")
+    .replace(/\r?\n/g, " ");
+}
+
+function buildCsv(headers, rows) {
   const lines = [headers.join(",")];
-  for (const r of data || []) {
-    lines.push(headers.map((h) => esc(r[h])).join(","));
+  for (const r of rows) {
+    lines.push(headers.map((h) => escCsv(r[h])).join(","));
   }
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  return lines.join("\n");
+}
+
+function buildTsv(headers, rows) {
+  const lines = [headers.join("\t")];
+  for (const r of rows) {
+    lines.push(headers.map((h) => escTsv(r[h])).join("\t"));
+  }
+  return lines.join("\n");
+}
+
+export async function exportForGoogleSheetsRemote(from, to) {
+  const { headers, rows } = await fetchExportRows(from, to);
+  if (!rows.length) throw new Error("No tickets in that date range.");
+
+  const tsv = buildTsv(headers, rows);
+  if (!navigator.clipboard?.writeText) {
+    throw new Error("Clipboard not available. Use Download CSV instead.");
+  }
+  await navigator.clipboard.writeText(tsv);
+  window.open("https://docs.google.com/spreadsheets/create", "_blank", "noopener,noreferrer");
+  return { count: rows.length };
+}
+
+export async function downloadCsvRemote(from, to) {
+  const { headers, rows } = await fetchExportRows(from, to);
+  const blob = new Blob([buildCsv(headers, rows)], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "ops-tickets-export.csv";

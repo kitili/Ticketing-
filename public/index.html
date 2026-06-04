@@ -147,13 +147,19 @@
           </div>
 
           <div id="mgr-tab-export" class="card hidden">
-            <h2>Download tickets (CSV)</h2>
-            <p class="hint">Export by date opened. Leave blank for all records.</p>
+            <h2>Export to Google Sheets</h2>
+            <p class="hint">
+              By date opened (leave blank for all). Opens a new Google Sheet — click cell <strong>A1</strong> and press
+              <strong>Ctrl+V</strong> (or <strong>Cmd+V</strong> on Mac) to paste the table.
+            </p>
             <label for="export-from">From date</label>
             <input id="export-from" type="date" />
             <label for="export-to">To date</label>
             <input id="export-to" type="date" />
-            <button type="button" class="btn btn-primary" id="btn-export">Download CSV</button>
+            <div class="btn-group" style="margin-top: 0.75rem">
+              <button type="button" class="btn btn-primary" id="btn-export-sheets">Open Google Sheets</button>
+              <button type="button" class="btn btn-secondary" id="btn-export-csv">Download CSV</button>
+            </div>
           </div>
 
           <div id="mgr-tab-settings" class="card hidden">

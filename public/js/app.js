@@ -544,7 +544,21 @@ async function openManagerDetail(id) {
   }
 }
 
-document.getElementById("btn-export").addEventListener("click", async () => {
+document.getElementById("btn-export-sheets").addEventListener("click", async () => {
+  const from = document.getElementById("export-from").value;
+  const to = document.getElementById("export-to").value;
+  try {
+    const { count } = await api.exportForGoogleSheets(from, to);
+    showToast(
+      count + " ticket(s) copied — paste into cell A1 in the new Google Sheet (Ctrl+V).",
+      "success"
+    );
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+});
+
+document.getElementById("btn-export-csv").addEventListener("click", async () => {
   const from = document.getElementById("export-from").value;
   const to = document.getElementById("export-to").value;
   try {

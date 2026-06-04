@@ -379,6 +379,13 @@ export async function postMessage(id, body) {
   return { ok: true, created_at: t, _queued: true };
 }
 
+export async function exportForGoogleSheets(from, to) {
+  if (!shouldUseNetwork()) {
+    throw new Error("Export requires an internet connection.");
+  }
+  return remote.exportForGoogleSheetsRemote(from, to);
+}
+
 export async function downloadCsv(from, to) {
   if (!shouldUseNetwork()) {
     throw new Error("CSV export requires an internet connection.");
