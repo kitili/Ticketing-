@@ -4,6 +4,9 @@
 
 Simple internal **ticket system** for Silverleaf operations: five departments open tickets; the Operations Manager manages them; departments close when resolved.
 
+**Live URL:** https://ticketingsla.netlify.app  
+**Repo:** https://github.com/kitili/Ticketing-
+
 **Production stack:** Static HTML/CSS/JS + **Supabase** (free DB) + **Netlify** (free hosting).  
 **No Node server required** for live deployment.
 
