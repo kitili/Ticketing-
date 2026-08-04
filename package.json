@@ -7,13 +7,16 @@
     "start": "node server.js",
     "build": "node scripts/write-config.js",
     "local": "node scripts/init-local-config.js && cd public && python3 -m http.server 8080",
-    "hash-pin": "node scripts/hash-pin.js"
+    "hash-pin": "node scripts/hash-pin.js",
+    "db:check": "node db/check.js"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "better-sqlite3": "^11.7.0",
-    "express": "^4.21.2"
+    "dotenv": "^17.4.2",
+    "express": "^4.21.2",
+    "pg": "^8.22.0"
   }
 }

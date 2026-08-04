@@ -1,5 +1,7 @@
 node_modules/
 data/*
 .DS_Store
+.env
 public/js/config.js
 public/js/env.js
+PROOF-hand-drawn-erd.png
