@@ -22,6 +22,25 @@ function shouldUseNetwork() {
   return isOnline() && isConfigured();
 }
 
+/** Browser can be "online" while Supabase fetch still fails — treat as offline. */
+export function isUnreachableError(err) {
+  const msg = String(err?.message || err || "");
+  return (
+    /failed to fetch/i.test(msg) ||
+    /networkerror/i.test(msg) ||
+    /load failed/i.test(msg) ||
+    /network request failed/i.test(msg) ||
+    err?.name === "TypeError"
+  );
+}
+
+export function friendlyError(err) {
+  if (isUnreachableError(err)) {
+    return "Cannot reach the server. Ticket saved offline if possible — tap Sync when back online.";
+  }
+  return String(err?.message || err || "Something went wrong.");
+}
+
 function applyOutboxToRequest(req, outbox) {
   let r = { ...req };
   const id = r.id;
@@ -170,7 +189,7 @@ export async function listRequests(params = {}) {
       await store.cacheRequests(requests);
       return mergeRequestList(params, requests);
     } catch (err) {
-      if (!navigator.onLine) {
+      if (!navigator.onLine || isUnreachableError(err)) {
         return mergeRequestList(params, []);
       }
       throw err;
@@ -189,7 +208,7 @@ export async function getRequest(id) {
       await store.cacheMessagesForRequest(resolvedId, data.messages);
       return data;
     } catch (err) {
-      if (!navigator.onLine) {
+      if (!navigator.onLine || isUnreachableError(err)) {
         return getRequestFromCache(id);
       }
       throw err;
@@ -242,7 +261,7 @@ export async function submitRequest(body) {
       syncNow().catch(() => {});
       return { id: res.id, status: res.status, created_at: res.created_at };
     } catch (err) {
-      if (navigator.onLine) throw err;
+      if (navigator.onLine && !isUnreachableError(err)) throw err;
     }
   }
 
@@ -292,7 +311,7 @@ export async function patchStatus(id, body) {
       syncNow().catch(() => {});
       return res;
     } catch (err) {
-      if (navigator.onLine) throw err;
+      if (navigator.onLine && !isUnreachableError(err)) throw err;
     }
   }
 
@@ -314,7 +333,7 @@ export async function markReceived(id, body) {
       syncNow().catch(() => {});
       return res;
     } catch (err) {
-      if (navigator.onLine) throw err;
+      if (navigator.onLine && !isUnreachableError(err)) throw err;
     }
   }
 
@@ -342,7 +361,7 @@ export async function reopenTicket(id, body) {
       syncNow().catch(() => {});
       return res;
     } catch (err) {
-      if (navigator.onLine) throw err;
+      if (navigator.onLine && !isUnreachableError(err)) throw err;
     }
   }
 
@@ -364,7 +383,7 @@ export async function postMessage(id, body) {
       syncNow().catch(() => {});
       return res;
     } catch (err) {
-      if (navigator.onLine) throw err;
+      if (navigator.onLine && !isUnreachableError(err)) throw err;
     }
   }
 

@@ -19,6 +19,9 @@ const SESSION_KEY = "ops_desk_user";
 const connBar = document.getElementById("connectivity-bar");
 const btnSync = document.getElementById("btn-sync");
 
+function errText(err) {
+  return api.friendlyError(err);
+}
 let user = null;
 let currentView = "list";
 let selectedId = null;
@@ -87,7 +90,7 @@ function setupConnectivity() {
         await updateConnectivityBar();
         refreshCurrentView();
       } catch (err) {
-        showToast(err.message, "error");
+        showToast(errText(err), "error");
       } finally {
         btnSync.disabled = false;
       }
@@ -211,7 +214,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     showApp();
     showToast("Welcome!", "success");
   } catch (err) {
-    showToast(err.message, "error");
+    showToast(errText(err), "error");
   }
 });
 
@@ -279,7 +282,7 @@ document.getElementById("submit-form").addEventListener("submit", async (e) => {
     loadRequesterList();
     openRequesterDetail(res.id);
   } catch (err) {
-    showToast(err.message, "error");
+    showToast(errText(err), "error");
   }
 });
 
@@ -290,7 +293,7 @@ async function loadRequesterList() {
     const { requests } = await api.listRequests({ department: user.department });
     renderRequestTable(wrap, requests, openRequesterDetail);
   } catch (err) {
-    wrap.innerHTML = "<p class=\"hint\">" + escapeHtml(err.message) + "</p>";
+    wrap.innerHTML = "<p class=\"hint\">" + escapeHtml(errText(err)) + "</p>";
   }
 }
 
@@ -368,7 +371,7 @@ async function openRequesterDetail(id) {
         updateConnectivityBar();
         openRequesterDetail(id);
       } catch (err) {
-        showToast(err.message, "error");
+        showToast(errText(err), "error");
       }
     });
 
@@ -383,7 +386,7 @@ async function openRequesterDetail(id) {
         openRequesterDetail(id);
         loadRequesterList();
       } catch (err) {
-        showToast(err.message, "error");
+        showToast(errText(err), "error");
       }
     });
 
@@ -398,11 +401,11 @@ async function openRequesterDetail(id) {
         openRequesterDetail(id);
         loadRequesterList();
       } catch (err) {
-        showToast(err.message, "error");
+        showToast(errText(err), "error");
       }
     });
   } catch (err) {
-    panel.innerHTML = "<p class=\"hint\">" + escapeHtml(err.message) + "</p>";
+    panel.innerHTML = "<p class=\"hint\">" + escapeHtml(errText(err)) + "</p>";
   }
 }
 
@@ -451,7 +454,7 @@ async function loadManagerInbox() {
     renderRequestTable(wrap, requests, openManagerDetail);
     refreshBadge();
   } catch (err) {
-    wrap.innerHTML = "<p class=\"hint\">" + escapeHtml(err.message) + "</p>";
+    wrap.innerHTML = "<p class=\"hint\">" + escapeHtml(errText(err)) + "</p>";
   }
 }
 
@@ -523,7 +526,7 @@ async function openManagerDetail(id) {
           openManagerDetail(id);
           refreshBadge();
         } catch (err) {
-          showToast(err.message, "error");
+          showToast(errText(err), "error");
         }
       });
     });
@@ -542,11 +545,11 @@ async function openManagerDetail(id) {
         openManagerDetail(id);
         refreshBadge();
       } catch (err) {
-        showToast(err.message, "error");
+        showToast(errText(err), "error");
       }
     });
   } catch (err) {
-    panel.innerHTML = "<p class=\"hint\">" + escapeHtml(err.message) + "</p>";
+    panel.innerHTML = "<p class=\"hint\">" + escapeHtml(errText(err)) + "</p>";
   }
 }
 
@@ -560,7 +563,7 @@ document.getElementById("btn-export-sheets").addEventListener("click", async () 
       "success"
     );
   } catch (err) {
-    showToast(err.message, "error");
+    showToast(errText(err), "error");
   }
 });
 
@@ -571,7 +574,7 @@ document.getElementById("btn-export-csv").addEventListener("click", async () => 
     await api.downloadCsv(from, to);
     showToast("CSV downloaded.", "success");
   } catch (err) {
-    showToast(err.message, "error");
+    showToast(errText(err), "error");
   }
 });
 
@@ -584,7 +587,7 @@ document.getElementById("btn-change-pin").addEventListener("click", async () => 
     document.getElementById("new-pin").value = "";
     showToast("Manager PIN updated.", "success");
   } catch (err) {
-    showToast(err.message, "error");
+    showToast(errText(err), "error");
   }
 });
 
@@ -678,7 +681,7 @@ async function boot() {
     if (!isOnline()) {
       pinHint.textContent = "Offline — sign in as department staff without network, or manager after one online login.";
     } else {
-      pinHint.textContent = "Cannot reach Supabase: " + err.message;
+      pinHint.textContent = errText(err);
     }
   }
 
@@ -692,6 +695,6 @@ async function boot() {
 
 boot().catch((err) => {
   initStaticFormOptions();
-  showSetupError("App failed to start: " + err.message);
+  showSetupError(errText(err));
   showLogin();
 });
