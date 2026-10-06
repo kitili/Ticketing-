@@ -1,0 +1,63 @@
+{
+  "average_hops": 2.0,
+  "wrong_route_rate_pct": 0.0,
+  "wrong_routes": 0,
+  "tasks": 4,
+  "cost_usd": 0.022767,
+  "chars_read": 7589,
+  "targets": {
+    "max_avg_hops": 2,
+    "max_wrong_route_pct": 5
+  },
+  "pass": true,
+  "results": [
+    {
+      "id": "explicit-autonomy",
+      "kind": "explicit",
+      "hops": 2,
+      "loaded": [
+        "CLAUDE.md",
+        "docs/L3-autonomy.md"
+      ],
+      "missing": [],
+      "forbidden_hit": [],
+      "pass": true
+    },
+    {
+      "id": "implicit-inbox",
+      "kind": "implicit",
+      "hops": 2,
+      "loaded": [
+        "CLAUDE.md",
+        "docs/L2-ops-desk.md"
+      ],
+      "missing": [],
+      "forbidden_hit": [],
+      "pass": true
+    },
+    {
+      "id": "contextual-skill",
+      "kind": "contextual",
+      "hops": 2,
+      "loaded": [
+        "CLAUDE.md",
+        ".claude/skills/ticket-intake/SKILL.md"
+      ],
+      "missing": [],
+      "forbidden_hit": [],
+      "pass": true
+    },
+    {
+      "id": "negative-notify",
+      "kind": "negative",
+      "hops": 2,
+      "loaded": [
+        "CLAUDE.md",
+        "docs/L3-autonomy.md"
+      ],
+      "missing": [],
+      "forbidden_hit": [],
+      "pass": true
+    }
+  ]
+}

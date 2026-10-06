@@ -1,0 +1,37 @@
+{
+  "tasks": [
+    {
+      "id": "explicit-autonomy",
+      "kind": "explicit",
+      "question": "What is today's autonomy dial number and the stop-and-ask forever list?",
+      "should_load": ["CLAUDE.md", "docs/L3-autonomy.md"],
+      "should_not_load": ["supabase/schema.sql", "server.js", "NOTIFICATIONS.md"],
+      "max_hops": 2
+    },
+    {
+      "id": "implicit-inbox",
+      "kind": "implicit",
+      "question": "Where do new tickets land before the orchestrator runs?",
+      "should_load": ["CLAUDE.md", "docs/L2-ops-desk.md"],
+      "should_not_load": ["docs/L3-autonomy.md", "NOTIFICATIONS.md"],
+      "max_hops": 2
+    },
+    {
+      "id": "contextual-skill",
+      "kind": "contextual",
+      "question": "Which skill should I use to drain the inbox end to end?",
+      "should_load": ["CLAUDE.md", ".claude/skills/ticket-intake/SKILL.md"],
+      "should_not_load": ["docs/L3-autonomy.md", "server.js"],
+      "max_hops": 2
+    },
+    {
+      "id": "negative-notify",
+      "kind": "negative",
+      "question": "Should the harness auto-send WhatsApp when a ticket arrives?",
+      "should_load": ["CLAUDE.md", "docs/L3-autonomy.md"],
+      "should_not_load": ["NOTIFICATIONS.md", "supabase/functions/notify-new-request/index.ts"],
+      "max_hops": 2,
+      "expected_answer_contains": ["never", "stop-and-ask", "notify"]
+    }
+  ]
+}

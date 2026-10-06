@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset=utf-8>
+<title>Hook block proof</title>
+<style>
+body{margin:0;background:#0d1117;color:#c9d1d9;font:14px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{padding:24px;white-space:pre-wrap}
+h1{font:600 16px system-ui;margin:0;padding:16px 24px;background:#161b22;border-bottom:1px solid #30363d;color:#58a6ff}
+.fail{color:#ff7b72}
+</style></head><body>
+<h1>Ops Desk harness — PreToolUse sensor blocking a bad move</h1>
+<pre class=fail>=== Block force-push ===
+exit:2
+BLOCKED: force-push to main/master is denied. Use a feature branch PR instead.
+
+=== Block .env stage ===
+exit:2
+BLOCKED: refusing to stage/commit .env. Keep secrets out of git; rotate if already exposed.
+
+=== Block fat CLAUDE.md ===
+exit:2
+BLOCKED: CLAUDE.md would be 160 lines (max 150). Move detail to docs/L2-*.md or docs/L3-*.md and keep L1 as a router.
+
+=== Allow short CLAUDE.md write ===
+exit:0
+(stderr empty on success)
+</pre>
+</body></html>

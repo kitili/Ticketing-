@@ -1,0 +1,3 @@
+{"event":"open","id":"bd-001","ts":"2026-10-06T07:30:00Z","title":"Build Assignment 2 effective harness (guides + sensors + beads + evals)","owner":"kitili"}
+{"event":"close","id":"bd-001","ts":"2026-10-06T07:45:00Z","resolution":"Shipped L1 CLAUDE.md router, L2/L3 docs, Pre/Post/Stop/SessionStart hooks, .beads memory, and routing evals.","verify":"wc -l CLAUDE.md ≤150; bash .claude/hooks/pre-write-guard.sh blocks fat CLAUDE.md; python3 .claude/evals/run_routing_evals.py reports hops≤2 and wrong-route <5%"}
+{"event": "open", "id": "bd-002", "ts": "2026-10-06T07:50:00Z", "title": "Monitor wrong-route eval weekly and keep CLAUDE.md under 150 lines", "owner": "kitili"}
