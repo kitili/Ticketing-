@@ -1,0 +1,187 @@
+{
+  "task": "Ops ticket intake (priority + ack + status action)",
+  "critic": "plain rules (critic.js) — no model call",
+  "store": "instructions (scripts/self-heal/store/instructions.jsonl)",
+  "before": {
+    "label": "before",
+    "n": 10,
+    "passes": 10,
+    "retries": 17,
+    "escalations": 0,
+    "rows": [
+      {
+        "run": 1,
+        "ticket_id": "SH-01-r1",
+        "ok": true,
+        "retries": 2,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 2,
+        "ticket_id": "SH-02-r2",
+        "ok": true,
+        "retries": 2,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 3,
+        "ticket_id": "SH-03-r3",
+        "ok": true,
+        "retries": 1,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 4,
+        "ticket_id": "SH-01-r4",
+        "ok": true,
+        "retries": 2,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 5,
+        "ticket_id": "SH-02-r5",
+        "ok": true,
+        "retries": 2,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 6,
+        "ticket_id": "SH-03-r6",
+        "ok": true,
+        "retries": 1,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 7,
+        "ticket_id": "SH-01-r7",
+        "ok": true,
+        "retries": 2,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 8,
+        "ticket_id": "SH-02-r8",
+        "ok": true,
+        "retries": 2,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 9,
+        "ticket_id": "SH-03-r9",
+        "ok": true,
+        "retries": 1,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 10,
+        "ticket_id": "SH-01-r10",
+        "ok": true,
+        "retries": 2,
+        "escalated": false,
+        "failure_id": null
+      }
+    ]
+  },
+  "after": {
+    "label": "after",
+    "n": 10,
+    "passes": 10,
+    "retries": 0,
+    "escalations": 0,
+    "rows": [
+      {
+        "run": 1,
+        "ticket_id": "SH-01-r1",
+        "ok": true,
+        "retries": 0,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 2,
+        "ticket_id": "SH-02-r2",
+        "ok": true,
+        "retries": 0,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 3,
+        "ticket_id": "SH-03-r3",
+        "ok": true,
+        "retries": 0,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 4,
+        "ticket_id": "SH-01-r4",
+        "ok": true,
+        "retries": 0,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 5,
+        "ticket_id": "SH-02-r5",
+        "ok": true,
+        "retries": 0,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 6,
+        "ticket_id": "SH-03-r6",
+        "ok": true,
+        "retries": 0,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 7,
+        "ticket_id": "SH-01-r7",
+        "ok": true,
+        "retries": 0,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 8,
+        "ticket_id": "SH-02-r8",
+        "ok": true,
+        "retries": 0,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 9,
+        "ticket_id": "SH-03-r9",
+        "ok": true,
+        "retries": 0,
+        "escalated": false,
+        "failure_id": null
+      },
+      {
+        "run": 10,
+        "ticket_id": "SH-01-r10",
+        "ok": true,
+        "retries": 0,
+        "escalated": false,
+        "failure_id": null
+      }
+    ]
+  },
+  "delta": {
+    "retries": -17,
+    "escalations": 0
+  }
+}

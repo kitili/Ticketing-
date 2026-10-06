@@ -1,0 +1,8 @@
+{
+  "id": "SH-02",
+  "department": "Transport",
+  "title": "Bus won't start — urgent",
+  "details": "Morning bus has an outage at the gate; students waiting. Treat as emergency.",
+  "status": "open",
+  "priority": "urgent"
+}
