@@ -1,0 +1,9 @@
+{
+  "id": "T-1002",
+  "department": "Transport",
+  "requester_name": "Brian",
+  "title": "Bus won't start — urgent",
+  "details": "Morning bus has an outage at the gate; students waiting. Treat as emergency.",
+  "status": "open",
+  "priority": "normal"
+}

@@ -1,0 +1,17 @@
+{
+  "results": [
+    {
+      "run": "runs/T-1002-20261006T072525Z.json",
+      "ticket_id": "T-1002",
+      "pass": true,
+      "failures": []
+    },
+    {
+      "run": "runs/T-1001-20261006T072525Z.json",
+      "ticket_id": "T-1001",
+      "pass": true,
+      "failures": []
+    }
+  ],
+  "failed": 0
+}

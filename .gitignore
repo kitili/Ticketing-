@@ -5,3 +5,5 @@ data/*
 public/js/config.js
 public/js/env.js
 PROOF-hand-drawn-erd.png
+runs/
+inbox/*.processed.json
