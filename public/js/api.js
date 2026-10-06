@@ -30,6 +30,8 @@ export function isUnreachableError(err) {
     /networkerror/i.test(msg) ||
     /load failed/i.test(msg) ||
     /network request failed/i.test(msg) ||
+    /fetch failed/i.test(msg) ||
+    /aborted/i.test(msg) ||
     err?.name === "TypeError"
   );
 }
