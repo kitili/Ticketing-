@@ -1,4 +1,27 @@
 {
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Bash(python3 scripts/orchestrator.py)",
+      "Bash(python3 scripts/run-evals.py)",
+      "Bash(bash scripts/run-orchestrator.sh)",
+      "Bash(python3 scripts/harness-ten-checks.py*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git commit*)",
+      "Bash(npm *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force*)",
+      "Bash(curl * | bash)",
+      "Read(.env)",
+      "Edit(.env)",
+      "Edit(public/js/config.js)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {

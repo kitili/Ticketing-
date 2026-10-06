@@ -1,0 +1,44 @@
+# Harness action log
+
+Every orchestrator step is appended here so the room is visible.
+
+- `2026-10-06T07:30:33Z` **combine** — merged run for T-1003
+- `2026-10-06T07:30:33Z` **write** — wrote runs/T-1003-20261006T073033Z.json
+- `2026-10-06T07:30:39Z` **orchestrator-start** — ignore_inbound_priority=False buggy=False files=3
+- `2026-10-06T07:30:39Z` **read** — loaded inbox ticket T-1001.json
+- `2026-10-06T07:30:39Z` **priority-sorter** — trusted inbound priority field (no CLAUDE.md ban)
+- `2026-10-06T07:30:39Z` **ack-writer** — drafted acknowledgement (notify=false)
+- `2026-10-06T07:30:39Z` **status-advancer** — action=advance to=in_progress
+- `2026-10-06T07:30:39Z` **combine** — merged run for T-1001
+- `2026-10-06T07:30:39Z` **write** — wrote runs/T-1001-20261006T073039Z.json
+- `2026-10-06T07:30:39Z` **read** — loaded inbox ticket T-1002.json
+- `2026-10-06T07:30:39Z` **priority-sorter** — trusted inbound priority field (no CLAUDE.md ban)
+- `2026-10-06T07:30:39Z` **ack-writer** — drafted acknowledgement (notify=false)
+- `2026-10-06T07:30:39Z` **status-advancer** — action=advance to=in_progress
+- `2026-10-06T07:30:39Z` **combine** — merged run for T-1002
+- `2026-10-06T07:30:39Z` **write** — wrote runs/T-1002-20261006T073039Z.json
+- `2026-10-06T07:30:39Z` **read** — loaded inbox ticket T-1003.json
+- `2026-10-06T07:30:39Z` **priority-sorter** — trusted inbound priority field (no CLAUDE.md ban)
+- `2026-10-06T07:30:39Z` **ack-writer** — drafted acknowledgement (notify=false)
+- `2026-10-06T07:30:39Z` **status-advancer** — action=none to=none
+- `2026-10-06T07:30:39Z` **combine** — merged run for T-1003
+- `2026-10-06T07:30:39Z` **write** — wrote runs/T-1003-20261006T073039Z.json
+- `2026-10-06T07:30:40Z` **orchestrator-start** — ignore_inbound_priority=True buggy=False files=3
+- `2026-10-06T07:30:40Z` **read** — loaded inbox ticket T-1001.json
+- `2026-10-06T07:30:40Z` **priority-sorter** — explicitly low urgency
+- `2026-10-06T07:30:40Z` **ack-writer** — drafted acknowledgement (notify=false)
+- `2026-10-06T07:30:40Z` **status-advancer** — action=advance to=in_progress
+- `2026-10-06T07:30:40Z` **combine** — merged run for T-1001
+- `2026-10-06T07:30:40Z` **write** — wrote runs/T-1001-20261006T073040Z.json
+- `2026-10-06T07:30:40Z` **read** — loaded inbox ticket T-1002.json
+- `2026-10-06T07:30:40Z` **priority-sorter** — safety/outage language in ticket
+- `2026-10-06T07:30:40Z` **ack-writer** — drafted acknowledgement (notify=false)
+- `2026-10-06T07:30:40Z` **status-advancer** — action=none to=none
+- `2026-10-06T07:30:40Z` **combine** — merged run for T-1002
+- `2026-10-06T07:30:40Z` **write** — wrote runs/T-1002-20261006T073040Z.json
+- `2026-10-06T07:30:40Z` **read** — loaded inbox ticket T-1003.json
+- `2026-10-06T07:30:40Z` **priority-sorter** — explicitly low urgency
+- `2026-10-06T07:30:40Z` **ack-writer** — drafted acknowledgement (notify=false)
+- `2026-10-06T07:30:40Z` **status-advancer** — action=advance to=in_progress
+- `2026-10-06T07:30:40Z` **combine** — merged run for T-1003
+- `2026-10-06T07:30:40Z` **write** — wrote runs/T-1003-20261006T073040Z.json
