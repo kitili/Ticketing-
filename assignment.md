@@ -25,11 +25,25 @@ number/link. If any step fails, say so honestly instead of skipping it.
 ```
 
 - **Polling / check-in interval:** 30m
-- **Pull request:** PR not created yet
+- **Pull request:** #null — https://github.com/kitili/Ticketing-/compare/main...module14-footer-muwdj8kt?expand=1
 
 ## Failures (honest)
 - **slack** @ 2026-10-06T07:45:30.397Z: Slack not configured (SLACK_BOT_TOKEN / SLACK_CHANNEL_ID missing). No live Slack event was received in this session.
 - **notion** @ 2026-10-06T07:45:30.403Z: Notion not configured (NOTION_TOKEN / NOTION_DATABASE_ID missing). Integration was never added to .env on this machine.
+- **github_pr_create** @ 2026-10-06T07:45:33.514Z: Command failed: gh pr create --title "Module 14: homepage footer + assignment.md" --body "$(cat <<'EOF'
+## Summary
+- Homepage footer with name, project, Built with Claude.
+- Agent-written assignment.md with observed run values.
+
+## Test plan
+- [ ] Open homepage and confirm footer
+- [ ] Read assignment.md for real (non-placeholder) values
+
+EOF
+)"
+To get started with GitHub CLI, please run:  gh auth login
+Alternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token.
+
 
 - **Run started:** 2026-10-06T07:45:30.396Z
-- **Run finished:** 2026-10-06T07:45:30.412Z
+- **Run finished:** 2026-10-06T07:45:33.515Z
