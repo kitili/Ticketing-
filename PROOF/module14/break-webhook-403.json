@@ -1,0 +1,15 @@
+{
+  "tried_at": "2026-10-06T07:45:30.311Z",
+  "cases": [
+    {
+      "name": "matching secrets",
+      "result": "allowed"
+    },
+    {
+      "name": "secret changed on one side only",
+      "result": "blocked_as_expected",
+      "status": 403,
+      "exact_error": "403 Forbidden: Slack signature mismatch (webhook secret differs)"
+    }
+  ]
+}

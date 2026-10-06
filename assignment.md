@@ -25,7 +25,7 @@ number/link. If any step fails, say so honestly instead of skipping it.
 ```
 
 - **Polling / check-in interval:** 30m
-- **Pull request:** #null — https://github.com/kitili/Ticketing-/compare/main...module14-footer-muwdj8kt?expand=1
+- **Pull request:** (not numbered yet) — https://github.com/kitili/Ticketing-/compare/main...module14-footer-muwdj8kt?expand=1
 
 ## Failures (honest)
 - **slack** @ 2026-10-06T07:45:30.397Z: Slack not configured (SLACK_BOT_TOKEN / SLACK_CHANNEL_ID missing). No live Slack event was received in this session.
