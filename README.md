@@ -13,6 +13,30 @@ Simple internal **ticket system** for Silverleaf operations: five departments op
 **Offline:** PWA + local queue — open tickets and manager actions without network; sync when back online.  
 **Notifications:** Email (Resend) and optional WhatsApp (Twilio) via Supabase Edge Function — see [NOTIFICATIONS.md](./NOTIFICATIONS.md).
 
+## Modules 12–15 (assessment proof)
+
+Full map: **[MODULES.md](./MODULES.md)**.
+
+| Module | Topic | Proof |
+|--------|-------|-------|
+| **12** | Orchestrator (sub-agents + hook + loop + evals) | [`PROOF/orchestrator/`](./PROOF/orchestrator/) · [`agents-plan.md`](./agents-plan.md) · `.claude/skills/` |
+| **13** | Effective harness (guides, sensors, beads, report card) | [`PROOF/harness-a2/`](./PROOF/harness-a2/) · [`CLAUDE.md`](./CLAUDE.md) · `.beads/` |
+| **14** | Self-healing intake loop (act → critic → retry → remember) | [`PROOF/self-heal/`](./PROOF/self-heal/) · [`POLICY.md`](./POLICY.md) · `scripts/self-heal/` |
+| **15** | **Slack + Notion + GitHub** trail (course text: “Module 14”) | [`PROOF/module14/`](./PROOF/module14/) · [`assignment.md`](./assignment.md) · [`reflection.md`](./reflection.md) |
+
+### Slack & Notion (Module 15)
+
+Env placeholders are in [`.env.example`](./.env.example) — copy to `.env` locally, never commit secrets:
+
+```bash
+cp .env.example .env
+# fill SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET, SLACK_CHANNEL_ID,
+# NOTION_TOKEN, NOTION_DATABASE_ID (and optional GITHUB_TOKEN)
+node scripts/module14/run-assignment.js
+```
+
+Homepage footer (Module 15 task): **Kitili Mbula · Silverleaf Ops Ticket Desk** + **Built with Claude.**
+
 ## Departments
 
 Transport · Facilities · Kitchen · Security · Farms
@@ -53,12 +77,19 @@ cd public && python3 -m http.server 8080
 ## Project layout
 
 ```
-public/           ← frontend (Netlify publish dir)
-public/sw.js      ← offline app shell
-public/js/offline-store.js, sync.js, api-remote.js
+public/                 ← frontend (Netlify publish dir)
+.claude/skills/         ← Module 12 sub-agent skills
+.claude/hooks/          ← harness sensors + inbox orchestrator hook
+.beads/                 ← Module 13 memory
+evals/                  ← Module 12 evals
+scripts/self-heal/      ← Module 14 self-heal loop
+scripts/module14/       ← Module 15 Slack/Notion/GitHub runner
+PROOF/                  ← Google Doc drafts + evidence per module
+assignment.md           ← Module 15 agent run report
+reflection.md           ← Module 15 hand-written break report
+MODULES.md              ← LMS module → file map
+.env.example            ← includes SLACK_* and NOTION_* placeholders
 supabase/schema.sql
-supabase/functions/notify-new-request/
-scripts/write-config.js
 netlify.toml
 DEPLOY.md
 NOTIFICATIONS.md
