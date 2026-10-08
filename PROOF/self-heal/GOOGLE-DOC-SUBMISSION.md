@@ -1,4 +1,4 @@
-# Self-Healing & Self-Improving — Assignment (Kitili Mbula)
+# Module 14 — Self-Healing & Self-Improving — Assignment (Kitili Mbula)
 
 Sharing: **Anyone with the link → Viewer**  
 **Code:** https://github.com/kitili/Ticketing- → `scripts/self-heal/`

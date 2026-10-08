@@ -1,11 +1,11 @@
-# Module 14 — assignment.md (agent-written run report)
+# Module 15 / Module 14 — assignment.md (agent-written run report)
 
 - **Bot / app name:** Ops Desk Agent
 - **Project name:** Silverleaf Ops Ticket Desk
-- **Slack channel:** I could not retrieve a live Slack channel — Slack not configured (SLACK_BOT_TOKEN / SLACK_CHANNEL_ID missing). No live Slack event was received in this session.
-- **Slack workspace:** unavailable — Slack step failed
-- **Notion databases connected:** 0 (search may have failed — see failures)
-- **Notion database used:** I could not use a Notion database — token/database id missing or API error
+- **Slack channel:** I could not retrieve a live Slack channel — Slack not configured (SLACK_BOT_TOKEN / SLACK_CHANNEL_ID missing). No live Slack event was received in this session. Placeholders are documented in `.env.example` and `README.md` on `main`.
+- **Slack workspace:** unavailable — Slack step failed (set `SLACK_WORKSPACE_NAME` + tokens in local `.env`)
+- **Notion databases connected:** 0 (see failures)
+- **Notion database used:** I could not use a Notion database — token/database id missing or API error (`NOTION_TOKEN` / `NOTION_DATABASE_ID` in `.env.example`)
 - **Notion card title:** I could not create a Notion card
 - **Notion card link:** I could not retrieve a Notion card URL
 - **Notion status history:** I could not retrieve the status history — Notion trail did not run successfully.
@@ -25,25 +25,11 @@ number/link. If any step fails, say so honestly instead of skipping it.
 ```
 
 - **Polling / check-in interval:** 30m
-- **Pull request:** (not numbered yet) — https://github.com/kitili/Ticketing-/compare/main...module14-footer-muwdj8kt?expand=1
+- **Pull request / merge:** Footer + this file are on **`main`** — https://github.com/kitili/Ticketing-
 
 ## Failures (honest)
-- **slack** @ 2026-10-06T07:45:30.397Z: Slack not configured (SLACK_BOT_TOKEN / SLACK_CHANNEL_ID missing). No live Slack event was received in this session.
-- **notion** @ 2026-10-06T07:45:30.403Z: Notion not configured (NOTION_TOKEN / NOTION_DATABASE_ID missing). Integration was never added to .env on this machine.
-- **github_pr_create** @ 2026-10-06T07:45:33.514Z: Command failed: gh pr create --title "Module 14: homepage footer + assignment.md" --body "$(cat <<'EOF'
-## Summary
-- Homepage footer with name, project, Built with Claude.
-- Agent-written assignment.md with observed run values.
+- **slack** @ 2026-10-08T10:16:15.421Z: Slack not configured (SLACK_BOT_TOKEN / SLACK_CHANNEL_ID missing). No live Slack event was received in this session.
+- **notion** @ 2026-10-08T10:16:15.423Z: Notion not configured (NOTION_TOKEN / NOTION_DATABASE_ID missing). Integration was never added to `.env` on this machine.
 
-## Test plan
-- [ ] Open homepage and confirm footer
-- [ ] Read assignment.md for real (non-placeholder) values
-
-EOF
-)"
-To get started with GitHub CLI, please run:  gh auth login
-Alternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token.
-
-
-- **Run started:** 2026-10-06T07:45:30.396Z
-- **Run finished:** 2026-10-06T07:45:33.515Z
+- **Run started:** 2026-10-08T10:16:15.421Z
+- **Run finished:** 2026-10-08T10:16:15.467Z

@@ -321,6 +321,15 @@ function git(cmd) {
 }
 
 function openPr() {
+  // Set MODULE14_SKIP_GIT=1 to refresh assignment.md / Notion trail without forking a branch.
+  if (process.env.MODULE14_SKIP_GIT === "1") {
+    trail.github.branch = git("git branch --show-current");
+    trail.github.pr_url = "https://github.com/kitili/Ticketing-";
+    trail.github.ok = true;
+    trail.github.error =
+      "Skipped git branch/PR (MODULE14_SKIP_GIT=1). Footer lives on main.";
+    return;
+  }
   const branch = `module14-footer-${Date.now().toString(36)}`;
   trail.github.branch = branch;
   try {

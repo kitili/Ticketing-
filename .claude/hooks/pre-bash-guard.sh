@@ -25,7 +25,9 @@ if echo "$lower" | grep -Eq 'rm[[:space:]]+-rf[[:space:]]+/|rm[[:space:]]+-rf[[:
   exit 2
 fi
 
-if echo "$lower" | grep -Eq 'git[[:space:]]+add[[:space:]].*\.env([^a-z]|$)|\.env[[:space:]]|git[[:space:]]+commit.*\.env'; then
+# Block real dotenv vaults; allow templates like .env.example
+if echo "$CMD" | grep -Eqi 'git[[:space:]]+(add|rm|commit).*[[:space:]](\./)?\.env([[:space:]]|"|$)' \
+  || echo "$CMD" | grep -Eqi 'git[[:space:]]+add[[:space:]]+(\./)?\.env([[:space:]]|"|$)'; then
   echo "BLOCKED: refusing to stage/commit .env. Keep secrets out of git; rotate if already exposed." >&2
   exit 2
 fi
